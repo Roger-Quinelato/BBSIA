@@ -1,0 +1,20 @@
+# Ambiente
+.venv/
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Artefatos gerados do projeto
+historico/
+uploads/
+faiss_index/
+data/
+chunks.json
+textos_extraidos.txt
+textos_extraidos_v2.txt
+
+# Logs temporarios
+*.log
