@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chunking estruturado para o pipeline RAG do BBSIA.
 
 Preferencialmente le documentos_extraidos_v2.json, gerado pelo extrator v2,
@@ -9,15 +9,16 @@ de conteudo. Se o JSON nao existir, usa o parser legado de textos_extraidos_v2.t
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from typing import Any, Iterable
 
-# Parâmetros de chunking:
+# ParÃ¢metros de chunking:
 # - PARENT_CHUNK_SIZE: tamanho (em palavras) do parent chunk no pipeline legado
 # - CHILD_CHUNK_SIZE : tamanho (em palavras) dos child chunks (usados no embedding)
-# - CHILD_CHUNK_OVERLAP: sobreposição entre child chunks consecutivos
-# - PARENT_MAX_WORDS : limite máximo de palavras no parent_text enviado ao contexto
+# - CHILD_CHUNK_OVERLAP: sobreposiÃ§Ã£o entre child chunks consecutivos
+# - PARENT_MAX_WORDS : limite mÃ¡ximo de palavras no parent_text enviado ao contexto
 
 PARENT_CHUNK_SIZE = 500  # usado apenas em _legacy_parent_blocks
 CHUNK_OVERLAP = 75
@@ -30,6 +31,7 @@ STRUCTURED_INPUT_FILE = os.path.join(DATA_DIR, "documentos_extraidos_v2.json")
 OUTPUT_FILE = os.path.join(DATA_DIR, "chunks.json")
 UPLOAD_METADATA_FILE = os.path.join("uploads", "metadata_uploads.json")
 BIBLIOTECA_FILE = os.path.join(DATA_DIR, "biblioteca.json")
+LOGGER = logging.getLogger(__name__)
 
 
 CATEGORIAS_DOCUMENTOS = {
@@ -37,19 +39,19 @@ CATEGORIAS_DOCUMENTOS = {
         "area": "ia",
         "assuntos": ["rag", "chatbot", "pdf", "base de conhecimento"],
     },
-    "LIIA - InovaLabs 2026 Dinâmica.pdf": {
+    "LIIA - InovaLabs 2026 DinÃ¢mica.pdf": {
         "area": "tecnologia",
         "assuntos": ["inovacao", "metodologia", "oficina"],
     },
-    "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf": {
+    "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de SoluÃ§Ãµes de IA v.02.pdf": {
         "area": "ia",
         "assuntos": ["mvp", "rag", "api", "chatbot"],
     },
-    "LIIA BBSIA - Framework de Prontidão em IA.pdf": {
+    "LIIA BBSIA - Framework de ProntidÃ£o em IA.pdf": {
         "area": "ia",
         "assuntos": ["maturidade", "prontidao", "avaliacao"],
     },
-    "LIIA BBSIA - Framework Ética em IA MGI.pdf": {
+    "LIIA BBSIA - Framework Ã‰tica em IA MGI.pdf": {
         "area": "juridico",
         "assuntos": ["etica", "lgpd", "conformidade", "regulacao"],
     },
@@ -91,7 +93,7 @@ def normalize_upload_doc_name(doc_name: str) -> str:
 
 
 def _load_biblioteca() -> dict:
-    """Carrega o catálogo biblioteca.json indexado por nome de arquivo."""
+    """Carrega o catÃ¡logo biblioteca.json indexado por nome de arquivo."""
     path = os.path.join(_script_dir(), BIBLIOTECA_FILE)
     if not os.path.exists(path):
         return {}
@@ -115,13 +117,13 @@ def get_doc_metadata(doc_name: str) -> dict:
     """Retorna area, assuntos e metadados de autoria para um documento.
 
     Prioridade para area/assuntos:
-      1. upload_metadata (vem do usuário)
+      1. upload_metadata (vem do usuÃ¡rio)
       2. CATEGORIAS_DOCUMENTOS (mapeamento hardcoded legado)
-      3. biblioteca.json (classificação automática)
-      4. Fallback genérico
+      3. biblioteca.json (classificaÃ§Ã£o automÃ¡tica)
+      4. Fallback genÃ©rico
 
-    Campos de autoria (doc_titulo, doc_autores, doc_ano) vêm de
-    biblioteca.json quando disponíveis.
+    Campos de autoria (doc_titulo, doc_autores, doc_ano) vÃªm de
+    biblioteca.json quando disponÃ­veis.
     """
     normalized_name = normalize_upload_doc_name(doc_name)
     base_name = os.path.basename(doc_name)
@@ -193,7 +195,7 @@ def parse_documents(raw_text: str) -> list[dict]:
         doc_name = splits[i].strip()
         doc_content = splits[i + 1]
 
-        page_pattern = re.compile(r"---\s*(?:P[aá]gina|Pagina)\s*(\d+)\s*---", re.IGNORECASE)
+        page_pattern = re.compile(r"---\s*(?:P[aÃ¡]gina|Pagina)\s*(\d+)\s*---", re.IGNORECASE)
         page_splits = page_pattern.split(doc_content)
 
         j = 1
@@ -456,25 +458,21 @@ def _materialize_chunks(parents: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return all_chunks
 
 
-def run_chunking() -> None:
+def run_chunking() -> dict[str, Any]:
     """Pipeline principal de chunking."""
     script_dir = _script_dir()
     structured_path = os.path.join(script_dir, STRUCTURED_INPUT_FILE)
     output_path = os.path.join(script_dir, OUTPUT_FILE)
-    
+
     structured_payload = _load_structured_payload(structured_path)
     if not structured_payload:
-        print(f"Erro: '{STRUCTURED_INPUT_FILE}' nao encontrado. Execute extrator_pdf_v2.py primeiro.")
-        return
+        msg = f"'{STRUCTURED_INPUT_FILE}' nao encontrado. Execute extrator_pdf_v2.py primeiro."
+        LOGGER.error("event=chunking_missing_source error=%s", msg)
+        raise FileNotFoundError(msg)
 
-    print("Carregando extracao estruturada (JSON)...")
+    LOGGER.info("event=chunking_started source=%s", STRUCTURED_INPUT_FILE)
     parents = _structured_parent_blocks(structured_payload)
     source = STRUCTURED_INPUT_FILE
-
-    print(
-        "Gerando chunks parent-child "
-        f"(child_size={CHILD_CHUNK_SIZE}, overlap={CHILD_CHUNK_OVERLAP})..."
-    )
     all_chunks = _materialize_chunks(parents)
 
     with open(output_path, "w", encoding="utf-8") as f:
@@ -486,32 +484,28 @@ def run_chunking() -> None:
     tipos = sorted({c["content_type"] for c in all_chunks})
     parents_unicos = {c["parent_id"] for c in all_chunks}
 
-    print(f"\n{'=' * 60}")
-    print("  CHUNKING CONCLUIDO")
-    print(f"{'=' * 60}")
-    print(f"  Fonte usada            : {source}")
-    print(f"  Documentos processados : {len(docs_unicos)}")
-    print(f"  Parents gerados        : {len(parents_unicos)}")
-    print(f"  Tipos de conteudo      : {', '.join(tipos) if tipos else '-'}")
-    print(f"  Areas mapeadas         : {', '.join(sorted(areas_unicas))}")
-    print(f"  Total de chunks gerados: {len(all_chunks)}")
-    print(f"  Total de palavras      : {total_palavras:,}")
-    print(f"  Media palavras/chunk   : {total_palavras // max(len(all_chunks), 1)}")
-    print(f"  Arquivo salvo em       : {OUTPUT_FILE}")
-    print(f"{'=' * 60}")
+    LOGGER.info(
+        "event=chunking_completed source=%s documentos=%s parents=%s chunks=%s total_palavras=%s output=%s",
+        source,
+        len(docs_unicos),
+        len(parents_unicos),
+        len(all_chunks),
+        total_palavras,
+        OUTPUT_FILE,
+    )
 
-    print("\nAmostra dos primeiros 3 chunks:\n")
-    for c in all_chunks[:3]:
-        preview = c["texto"][:200] + "..." if len(c["texto"]) > 200 else c["texto"]
-        section = c.get("section_heading") or "sem secao"
-        print(f"  [ID {c['id']}] {c['documento']}")
-        print(
-            f"    Pag. {c['pagina']} | Area: {c['area']} | "
-            f"Tipo: {c['content_type']} | Secao: {section}"
-        )
-        print(f"    {c['num_palavras']} palavras | Parent: {c['parent_id']}")
-        print(f"    {preview}\n")
+    return {
+        "source": source,
+        "documentos_processados": len(docs_unicos),
+        "parents_gerados": len(parents_unicos),
+        "total_chunks": len(all_chunks),
+        "total_palavras": total_palavras,
+        "areas": sorted(areas_unicas),
+        "tipos_conteudo": tipos,
+        "output_file": OUTPUT_FILE,
+    }
 
 
 if __name__ == "__main__":
     run_chunking()
+

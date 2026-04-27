@@ -1,4 +1,4 @@
-"""
+﻿"""
 Extrator de PDF v2 para o pipeline RAG do BBSIA.
 
 Gera dois artefatos:
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import os
 import re
 import statistics
@@ -27,9 +28,12 @@ except ImportError:
 INPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 DOCS_DIR = os.path.join(INPUT_DIR, "docs")
 UPLOADS_DIR = os.path.join(INPUT_DIR, "uploads")
+QUARANTINE_DIR = os.path.join(UPLOADS_DIR, "quarantine")
+APPROVED_DIR = os.path.join(UPLOADS_DIR, "approved")
 DATA_DIR = os.path.join(INPUT_DIR, "data")
 
 os.makedirs(DATA_DIR, exist_ok=True)
+LOGGER = logging.getLogger(__name__)
 
 STRUCTURED_OUTPUT_FILE = os.path.join(DATA_DIR, "documentos_extraidos_v2.json")
 
@@ -38,10 +42,10 @@ IGNORAR = {"Dataset NICE.xlsx"}
 
 
 def list_pdf_files() -> list[str]:
-    """Lista PDFs da raiz do projeto e da pasta uploads/."""
+    """Lista PDFs da raiz, docs/ e uploads/approved (somente aprovados)."""
     pdf_paths: list[str] = []
 
-    for folder in (INPUT_DIR, DOCS_DIR, UPLOADS_DIR):
+    for folder in (INPUT_DIR, DOCS_DIR, APPROVED_DIR):
         if not os.path.exists(folder):
             continue
         for file_name in sorted(os.listdir(folder)):
@@ -298,20 +302,26 @@ def _write_legacy_page(out_f, page: dict[str, Any]) -> None:
     out_f.write("\n")
 
 
-def run_extraction() -> None:
+def run_extraction() -> dict[str, Any]:
     """Pipeline principal de extracao."""
     pdf_files = list_pdf_files()
+    doc_errors: list[dict[str, str]] = []
+    metadata_errors: list[dict[str, str]] = []
 
     if not pdf_files:
-        print("Nenhum arquivo PDF encontrado.")
-        return
+        LOGGER.warning("event=extraction_no_pdfs_found")
+        return {
+            "total_pdfs_encontrados": 0,
+            "pdfs_processados": 0,
+            "total_paginas": 0,
+            "total_caracteres": 0,
+            "documento_erros": [],
+            "metadado_erros": [],
+            "structured_output_file": STRUCTURED_OUTPUT_FILE,
+        }
 
     structured_output_path = os.path.join(INPUT_DIR, STRUCTURED_OUTPUT_FILE)
-
-    print(f"Encontrados {len(pdf_files)} PDFs para extrair:\n")
-    for pdf_path in pdf_files:
-        print(f"  - {document_label(pdf_path)}")
-    print()
+    LOGGER.info("event=extraction_started total_pdfs=%s", len(pdf_files))
 
     total_pages = 0
     total_chars = 0
@@ -319,7 +329,7 @@ def run_extraction() -> None:
 
     for pdf_path in pdf_files:
         doc_label = document_label(pdf_path)
-        print(f"Processando: {doc_label}...")
+        LOGGER.info("event=extraction_document_started documento=%s", doc_label)
 
         try:
             pages = extract_text_from_pdf(pdf_path)
@@ -331,9 +341,18 @@ def run_extraction() -> None:
                     metadado = classificar_e_registrar(pdf_path, usar_llm=True)
                     doc_metadados = metadado.model_dump()
                     t = metadado.titulo
-                    print(f"  [META] {t[:60]}..." if len(t) > 60 else f"  [META] {t}")
+                    LOGGER.info(
+                        "event=extraction_metadata_ok documento=%s titulo=%s",
+                        doc_label,
+                        t[:60] + "..." if len(t) > 60 else t,
+                    )
                 except Exception as meta_exc:
-                    print(f"  [META WARN] Classificação falhou: {meta_exc}")
+                    metadata_errors.append({"documento": doc_label, "erro": str(meta_exc)})
+                    LOGGER.warning(
+                        "event=extraction_metadata_failed documento=%s erro=%s",
+                        doc_label,
+                        meta_exc,
+                    )
 
             entry: dict[str, Any] = {"documento": doc_label, "paginas": pages}
             if doc_metadados:
@@ -344,10 +363,11 @@ def run_extraction() -> None:
                 total_chars += len(page.get("texto", ""))
 
             total_pages += len(pages)
-            print(f"  [OK] {len(pages)} paginas extraidas")
+            LOGGER.info("event=extraction_document_completed documento=%s paginas=%s", doc_label, len(pages))
 
         except Exception as exc:
-            print(f"  [ERRO] {exc}")
+            doc_errors.append({"documento": doc_label, "erro": str(exc)})
+            LOGGER.exception("event=extraction_document_failed documento=%s", doc_label)
 
     with open(structured_output_path, "w", encoding="utf-8") as structured_f:
         json.dump(
@@ -357,16 +377,29 @@ def run_extraction() -> None:
             indent=2,
         )
 
-    print(f"\n{'=' * 60}")
-    print("  EXTRACAO CONCLUIDA")
-    print(f"{'=' * 60}")
-    print(f"  PDFs processados   : {len(pdf_files)}")
-    print(f"  Total de paginas   : {total_pages}")
-    print(f"  Total de caracteres: {total_chars:,}")
-    print(f"  Total de caracteres: {total_chars:,}")
-    print(f"  JSON estruturado   : {STRUCTURED_OUTPUT_FILE}")
-    print(f"{'=' * 60}")
+    processed = len(structured_documents)
+    LOGGER.info(
+        "event=extraction_completed total_pdfs=%s processados=%s total_paginas=%s total_caracteres=%s erro_docs=%s erro_meta=%s output=%s",
+        len(pdf_files),
+        processed,
+        total_pages,
+        total_chars,
+        len(doc_errors),
+        len(metadata_errors),
+        STRUCTURED_OUTPUT_FILE,
+    )
+    return {
+        "total_pdfs_encontrados": len(pdf_files),
+        "pdfs_processados": processed,
+        "total_paginas": total_pages,
+        "total_caracteres": total_chars,
+        "documento_erros": doc_errors,
+        "metadado_erros": metadata_errors,
+        "structured_output_file": STRUCTURED_OUTPUT_FILE,
+    }
 
 
 if __name__ == "__main__":
     run_extraction()
+
+

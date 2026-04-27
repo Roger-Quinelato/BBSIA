@@ -74,7 +74,7 @@ pip install -r requirements.txt
 ### 3) Baixar modelo Ollama
 
 ```bash
-ollama pull llama3.1:8b
+ollama pull qwen3.5:7b-instruct
 ```
 
 ### 4) Processar a base de documentos
@@ -109,8 +109,15 @@ Copie `.env.example` para `.env` e ajuste conforme necessário:
 ```bash
 # LLM e embeddings
 OLLAMA_URL=http://localhost:11434
-DEFAULT_MODEL=llama3.1:8b
-EMBEDDING_MODEL=paraphrase-multilingual-mpnet-base-v2
+DEFAULT_MODEL=qwen3.5:7b-instruct
+ALLOWED_LLM_MODELS=qwen3.5:7b-instruct
+ALLOW_REMOTE_OLLAMA=false
+EMBEDDING_MODEL=intfloat/multilingual-e5-large
+EMBEDDING_DIM=1024
+HF_LOCAL_FILES_ONLY=true
+PRELOAD_RAG_ON_STARTUP=true
+PRELOAD_RERANKER_ON_STARTUP=false
+RAG_HEALTH_LOAD_ON_STATUS=false
 
 # Parâmetros de retrieval
 TOP_K=5
@@ -118,23 +125,28 @@ MAX_CONTEXT_CHUNKS=3
 MAX_CHARS_PER_CHUNK=700
 OLLAMA_TIMEOUT_SEC=300
 OLLAMA_NUM_PREDICT=120
-OLLAMA_NUM_CTX=2048
+OLLAMA_NUM_CTX=8192
 
 # Retrieval híbrido (dense + sparse + RRF)
 HYBRID_DENSE_CANDIDATES=40
 HYBRID_SPARSE_CANDIDATES=80
 RRF_K=60
+MIN_DENSE_SCORE_PERCENT=18
 
-# Re-ranking opcional (mais qualidade, mais latência)
-ENABLE_RERANKER=false
-RERANKER_MODEL=cross-encoder/ms-marco-MiniLM-L-6-v2
+# Re-ranking local apos RRF (mais qualidade, mais latência)
+ENABLE_RERANKER=true
+RERANKER_MODEL=BAAI/bge-reranker-v2-m3
 RERANKER_CANDIDATES=20
+RERANKER_TOP_N=3
+RERANKER_MAX_LENGTH=512
 
 # CORS (origens separadas por vírgula)
 CORS_ORIGINS=http://localhost,http://127.0.0.1,http://localhost:8000
 
 # Autenticação (se definido, exige header X-API-Key)
 API_KEY=
+READ_API_KEY=
+ADMIN_API_KEY=
 
 # Rate limit por IP
 RATE_LIMIT_REQUESTS=120
@@ -142,6 +154,9 @@ RATE_LIMIT_WINDOW_SEC=60
 
 # Tamanho máximo de upload por arquivo (em MB)
 MAX_UPLOAD_SIZE_MB=50
+MAX_PDF_PAGES=300
+MAX_PDF_EXTRACTED_CHARS=2000000
+PDF_VALIDATION_TIMEOUT_SEC=30
 ```
 
 ## Endpoints da API
@@ -149,6 +164,7 @@ MAX_UPLOAD_SIZE_MB=50
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/status` | Status do sistema (índice, Ollama, reprocessamento) |
+| `GET` | `/rag/health` | Health do cache RAG, modelos carregados e threshold atual (`?load=true` força carga) |
 | `POST` | `/chat` | Pergunta com resposta RAG completa e citações acadêmicas |
 | `POST` | `/search` | Busca semântica sem geração LLM |
 | `GET` | `/biblioteca` | Catálogo de documentos com filtros (`?area=ia&ano_min=2020`) |
@@ -186,23 +202,51 @@ Após o upload, execute `POST /reprocessar`. O progresso pode ser acompanhado vi
 .venv\Scripts\python.exe -m pytest -v
 ```
 
-Cobertura atual — **40 testes**:
+Cobertura atual — **50 testes**:
 
 | Arquivo | Testes | Escopo |
 |---------|--------|--------|
 | `test_classificador.py` | 14 | Título, autores, ano, tipo, fallback LLM |
-| `test_api.py` | 11 | Status, search, chat, reprocessar, upload, `/biblioteca`, `/filtros`, autoria nos chunks |
-| `test_extraction_chunking.py` | 6 | Extração PDF, chunking, metadados, fallback |
+| `test_api.py` | 16 | Status, health RAG, search, chat, reprocessar, upload/quarentena, `/biblioteca`, `/filtros`, autoria nos chunks |
+| `test_extraction_chunking.py` | 7 | Extração PDF, chunking, metadados, fallback, uploads aprovados |
 | `test_embedding.py` | 5 | `_load_chunks`: arquivo ausente, formato inválido, sucesso |
 | `test_filters.py` | 1 | `_filter_ids` por área e assunto |
-| `test_rag_engine.py` | 3 | Fallback Ollama, faithfulness check, deduplicação |
+| `test_rag_engine.py` | 7 | Fallback Ollama, faithfulness check, deduplicação, cache health, preload, calibração e qualidade de retrieval |
 
 ## Scripts utilitários
 
 | Script | Descrição |
 |--------|-----------|
 | `scripts/calibrar_threshold.py` | Calibra `MIN_DENSE_SCORE_PERCENT` com queries reais e salva estatísticas |
+| `scripts/dev.ps1` | Atalhos de desenvolvimento no Windows (test, lint, format, typecheck, run, reprocess) |
 
 ```bash
 python scripts/calibrar_threshold.py
 ```
+
+### Atalhos de desenvolvimento
+
+PowerShell:
+
+```bash
+.\scripts\dev.ps1 -Task test
+.\scripts\dev.ps1 -Task lint
+.\scripts\dev.ps1 -Task run
+.\scripts\dev.ps1 -Task reprocess
+```
+
+Makefile:
+
+```bash
+make test
+make lint
+make run
+make reprocess
+```
+
+## Versionamento de dados
+
+- `data/` e `uploads/` ficam fora do Git (cache/artefatos de execução).
+- `docs/` (PDFs e planilhas de referência) permanece no Git no cenário atual.
+- Critérios para migrar para Git LFS ou dataset externo estão em:
+  - [docs/VERSIONAMENTO_DADOS.md](docs/VERSIONAMENTO_DADOS.md)

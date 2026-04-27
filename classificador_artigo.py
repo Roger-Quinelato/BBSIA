@@ -26,7 +26,7 @@ from config import get_env_str
 # ---------------------------------------------------------------------------
 
 OLLAMA_URL = get_env_str("OLLAMA_URL", "http://localhost:11434")
-CLASSIFICADOR_MODEL = get_env_str("CLASSIFICADOR_MODEL", get_env_str("DEFAULT_MODEL", "llama3.1:8b"))
+CLASSIFICADOR_MODEL = get_env_str("CLASSIFICADOR_MODEL", get_env_str("DEFAULT_MODEL", "qwen3.5:7b-instruct"))
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -533,7 +533,7 @@ def _query_ollama_json(titulo: str, resumo: str, timeout: int = 60) -> dict | No
                 "options": {
                     "temperature": 0.1,
                     "num_predict": 300,
-                    "num_ctx": 2048,
+                    "num_ctx": 8192,
                 },
             },
             timeout=(10, timeout),

@@ -3,6 +3,7 @@ from __future__ import annotations
 import fitz
 
 import chunking
+import extrator_pdf_v2
 from extrator_pdf_v2 import extract_text_from_pdf
 
 
@@ -89,3 +90,29 @@ def test_get_doc_metadata_fallback_generico():
     meta = chunking.get_doc_metadata("arquivo_totalmente_desconhecido.pdf")
     assert meta["area"] == "geral"
     assert meta["assuntos"] == ["geral"]
+
+
+def test_list_pdf_files_so_considera_uploads_approved(tmp_path, monkeypatch):
+    input_dir = tmp_path / "repo"
+    docs_dir = input_dir / "docs"
+    uploads_dir = input_dir / "uploads"
+    quarantine_dir = uploads_dir / "quarantine"
+    approved_dir = uploads_dir / "approved"
+    for path in (docs_dir, quarantine_dir, approved_dir):
+        path.mkdir(parents=True, exist_ok=True)
+
+    (quarantine_dir / "bloqueado.pdf").write_bytes(b"%PDF-1.4")
+    (approved_dir / "aprovado.pdf").write_bytes(b"%PDF-1.4")
+    (docs_dir / "doc.pdf").write_bytes(b"%PDF-1.4")
+
+    monkeypatch.setattr(extrator_pdf_v2, "INPUT_DIR", str(input_dir))
+    monkeypatch.setattr(extrator_pdf_v2, "DOCS_DIR", str(docs_dir))
+    monkeypatch.setattr(extrator_pdf_v2, "UPLOADS_DIR", str(uploads_dir))
+    monkeypatch.setattr(extrator_pdf_v2, "QUARANTINE_DIR", str(quarantine_dir))
+    monkeypatch.setattr(extrator_pdf_v2, "APPROVED_DIR", str(approved_dir))
+
+    files = extrator_pdf_v2.list_pdf_files()
+    as_text = "\n".join(files)
+    assert "aprovado.pdf" in as_text
+    assert "doc.pdf" in as_text
+    assert "bloqueado.pdf" not in as_text

@@ -8,6 +8,7 @@ const state = {
   selectedArea: "",
   messages: [],
   biblioteca: [],        // cache de /biblioteca
+  quarantine: [],        // cache de /admin/quarantine
   filtros: {},           // cache de /filtros
   selectedDocId: null,   // doc selecionado na biblioteca para filtrar
 };
@@ -32,11 +33,17 @@ const elements = {
   sidebar:       document.getElementById("sidebar"),
   bibCount:      document.getElementById("bibCount"),
   bibList:       document.getElementById("bibList"),
+  quarantineCount: document.getElementById("quarantineCount"),
+  quarantineList: document.getElementById("quarantineList"),
   areasPanel:    document.getElementById("areasPanel"),
   bibliotecaPanel: document.getElementById("bibliotecaPanel"),
+  quarantinePanel: document.getElementById("quarantinePanel"),
   docModal:      document.getElementById("docModal"),
   modalBody:     document.getElementById("modalBody"),
   modalClose:    document.getElementById("modalClose"),
+  loginModal:    document.getElementById("loginModal"),
+  loginForm:     document.getElementById("loginForm"),
+  apiKeyInput:   document.getElementById("apiKeyInput"),
 };
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -71,6 +78,8 @@ function iconForTipo(tipo) {
 function buildHeaders(isJson = true) {
   const headers = {};
   if (isJson) headers["Content-Type"] = "application/json";
+  const apiKey = localStorage.getItem("bbsia_api_key");
+  if (apiKey) headers["X-API-Key"] = apiKey;
   return headers;
 }
 
@@ -252,6 +261,28 @@ async function loadBiblioteca() {
   }
 }
 
+async function loadQuarantineQueue() {
+  try {
+    const resp = await fetch("/admin/quarantine", { headers: buildHeaders(false) });
+    if (resp.status === 401 || resp.status === 403) {
+      state.quarantine = [];
+      if (elements.quarantineCount) elements.quarantineCount.textContent = "";
+      renderQuarantine();
+      return;
+    }
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+    state.quarantine = data.itens || [];
+    if (elements.quarantineCount) {
+      elements.quarantineCount.textContent = state.quarantine.length ? String(state.quarantine.length) : "";
+    }
+    renderQuarantine();
+  } catch {
+    // silencioso
+  }
+}
+
 function renderBiblioteca() {
   const list = elements.bibList;
   list.innerHTML = "";
@@ -303,6 +334,99 @@ function renderBiblioteca() {
   });
 }
 
+function renderQuarantine() {
+  if (!elements.quarantineList) return;
+  const list = elements.quarantineList;
+  list.innerHTML = "";
+
+  if (state.quarantine.length === 0) {
+    list.innerHTML = `<p style="font-size:11px;color:var(--muted);padding:8px">Nenhum PDF pendente em quarentena.</p>`;
+    return;
+  }
+
+  state.quarantine.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "bib-card";
+    const findings = (item.prompt_injection_findings || []).length;
+    const findingsLabel = findings > 0 ? `${findings} alerta(s)` : "sem alertas";
+    const fileName = item.stored_filename || "";
+    card.innerHTML = `
+      <div class="bib-card-header">
+        <span class="bib-card-icon">🧾</span>
+        <span class="bib-card-author">${escapeHtml(item.original_filename || fileName || "arquivo.pdf")}</span>
+      </div>
+      <div class="bib-card-title">${escapeHtml(item.status || "quarantined_pending_review")} · ${escapeHtml(findingsLabel)}</div>
+      <div class="bib-card-tags">
+        <span class="bib-tag">${escapeHtml(item.area || "geral")}</span>
+        <button class="primary-action approve-btn" type="button" data-filename="${escapeHtml(fileName)}" style="margin:0 0 0 auto;height:28px;padding:0 10px;width:auto;">Aprovar</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+async function approveQuarantinedPdf(storedFilename) {
+  if (!storedFilename) return;
+  setLoading(true);
+  try {
+    const approveResp = await fetch(`/admin/quarantine/${encodeURIComponent(storedFilename)}/approve`, {
+      method: "POST",
+      headers: buildHeaders(false),
+    });
+    const approveData = await approveResp.json();
+    if (!approveResp.ok) {
+      throw new Error(approveData.detail || "Falha ao aprovar PDF.");
+    }
+
+    addMessage("assistant", `PDF aprovado (${storedFilename}) e movido para uploads/approved.`);
+
+    const reprocessResp = await fetch("/reprocessar", {
+      method: "POST",
+      headers: buildHeaders(false),
+    });
+    const reprocessData = await reprocessResp.json();
+    if (!reprocessResp.ok && reprocessResp.status !== 409) {
+      throw new Error(reprocessData.detail || "PDF aprovado, mas falhou ao reprocessar.");
+    }
+
+    if (reprocessResp.status === 409) {
+      addMessage("assistant", "Reprocessamento em andamento; arquivo aprovado entrou na fila. Aguardando conclusao para confirmar indexacao...");
+    } else {
+      addMessage("assistant", "Reprocessamento iniciado. Aguardando conclusao para confirmar indexacao...");
+    }
+
+    const pollStartedAt = Date.now();
+    const maxWaitMs = 180000;
+    let confirmed = false;
+    while (Date.now() - pollStartedAt < maxWaitMs) {
+      const statusResp = await fetch("/status", { headers: buildHeaders(false) });
+      if (!statusResp.ok) break;
+      const statusData = await statusResp.json();
+      const repro = statusData.reprocessamento || {};
+      if (repro.erro) {
+        throw new Error(`Reprocessamento falhou: ${repro.erro}`);
+      }
+      if (!repro.rodando && !repro.pendente && repro.concluido_em) {
+        confirmed = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    if (confirmed) {
+      addMessage("assistant", `PDF ${storedFilename} indexado com sucesso apos aprovacao.`);
+    } else {
+      addMessage("assistant", "Aprovacao concluida, mas ainda nao foi possivel confirmar o fim do reprocessamento. Verifique /status.");
+    }
+
+    await Promise.all([loadQuarantineQueue(), loadBiblioteca()]);
+  } catch (error) {
+    addMessage("assistant", `Erro: ${error.message || error}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
 /* ─── Tab Switching (Chats ↔ Biblioteca) ─────────────────────── */
 
 function switchTab(tabName) {
@@ -311,6 +435,9 @@ function switchTab(tabName) {
   });
   elements.areasPanel.hidden = tabName !== "chats";
   elements.bibliotecaPanel.hidden = tabName !== "biblioteca";
+  if (elements.quarantinePanel) {
+    elements.quarantinePanel.hidden = tabName !== "quarentena";
+  }
 }
 
 /* ─── 4.4 Document Detail Modal ──────────────────────────────── */
@@ -461,7 +588,7 @@ async function uploadSelectedPdfs(event) {
 
   setLoading(true);
   const area = state.selectedArea || "ia";
-  addMessage("assistant", `Recebi ${files.length} PDF(s). Atualizando a base ${labelForArea(area)}...`);
+  addMessage("assistant", `Recebi ${files.length} PDF(s). Enviando para quarentena da base ${labelForArea(area)}...`);
 
   try {
     const formData = new FormData();
@@ -488,30 +615,22 @@ async function uploadSelectedPdfs(event) {
       throw new Error(uploadData.detail || "Falha ao enviar PDFs.");
     }
 
-    let reprocessResponse;
-    try {
-      reprocessResponse = await fetch("/reprocessar", {
-        method: "POST",
-        headers: buildHeaders(false),
-      });
-    } catch (networkError) {
-      addMessage("assistant",
-        `${uploadData.total} PDF(s) enviados, mas não foi possível iniciar o reprocessamento.`
-      );
-      return;
-    }
-    const reprocessData = await reprocessResponse.json();
+    const statusCounts = {};
+    const arquivos = uploadData.arquivos || [];
+    arquivos.forEach((item) => {
+      const key = item.status || "desconhecido";
+      statusCounts[key] = (statusCounts[key] || 0) + 1;
+    });
+    const statusResumo = Object.entries(statusCounts)
+      .map(([status, count]) => `${count} ${status}`)
+      .join(", ");
 
-    if (!reprocessResponse.ok) {
-      throw new Error(reprocessData.detail || "Falha ao atualizar a base RAG.");
-    }
-
-    addMessage("assistant",
-      `${uploadData.total} PDF(s) adicionados e indexados. A base ${labelForArea(area)} já pode ser consultada.`
+    addMessage(
+      "assistant",
+      `${uploadData.total} PDF(s) enviados para quarentena.${statusResumo ? ` Status: ${statusResumo}.` : ""} Use a aba "Quarentena" para aprovar.`
     );
 
-    // Reload biblioteca after upload
-    await loadBiblioteca();
+    await loadQuarantineQueue();
   } catch (error) {
     addMessage("assistant", `Erro: ${error.message || error}`);
   } finally {
@@ -523,7 +642,39 @@ async function uploadSelectedPdfs(event) {
 /* ─── Event Binding ──────────────────────────────────────────── */
 
 function bindEvents() {
+  if (elements.loginForm) {
+    elements.loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const key = elements.apiKeyInput.value.trim();
+      if (!key) return;
+      
+      localStorage.setItem("bbsia_api_key", key);
+      
+      // Testar a chave na rota protegida de modelos
+      try {
+        const response = await fetch("/modelos", { headers: buildHeaders(false) });
+        if (response.status === 401 || response.status === 403) {
+          alert("Chave de API inválida ou sem permissão.");
+          localStorage.removeItem("bbsia_api_key");
+        } else {
+          elements.loginModal.hidden = true;
+          await Promise.all([loadBootstrapData(), loadFilters(), loadBiblioteca(), loadQuarantineQueue()]);
+        }
+      } catch (err) {
+        alert("Erro ao validar a chave. A API está rodando?");
+      }
+    });
+  }
+
   elements.chatForm.addEventListener("submit", sendQuestion);
+  elements.question.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (elements.question.value.trim() && !state.loading) {
+        elements.chatForm.requestSubmit();
+      }
+    }
+  });
   elements.clearBtn.addEventListener("click", clearChat);
   elements.newChatBtn.addEventListener("click", clearChat);
   elements.uploadPdfBtn.addEventListener("click", () => elements.pdfUpload.click());
@@ -545,6 +696,14 @@ function bindEvents() {
   document.querySelectorAll(".nav-item[data-tab]").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
+
+  if (elements.quarantineList) {
+    elements.quarantineList.addEventListener("click", (e) => {
+      const approveButton = e.target.closest(".approve-btn");
+      if (!approveButton || state.loading) return;
+      approveQuarantinedPdf(approveButton.dataset.filename || "");
+    });
+  }
 
   // Modal close
   elements.modalClose.addEventListener("click", closeDocModal);
@@ -586,12 +745,29 @@ async function checkApiHealth() {
   }
 }
 
+let eventsBound = false;
+
 async function init() {
-  bindEvents();
+  if (!eventsBound) {
+    bindEvents();
+    eventsBound = true;
+  }
   setSelectedArea("");
   updateChatSummary("");
   await checkApiHealth();
-  await Promise.all([loadBootstrapData(), loadFilters(), loadBiblioteca()]);
+  
+  // Tentar acessar rota protegida para ver se já temos a chave certa salva
+  try {
+    const response = await fetch("/modelos", { headers: buildHeaders(false) });
+    if (response.status === 401 || response.status === 403) {
+      if (elements.loginModal) elements.loginModal.hidden = false;
+      return; // Interrompe a inicialização das rotas até fazer login
+    }
+  } catch (e) {
+    // Ignora pois checkApiHealth já cuida de avisar se estiver offline
+  }
+
+  await Promise.all([loadBootstrapData(), loadFilters(), loadBiblioteca(), loadQuarantineQueue()]);
 }
 
 init();

@@ -10,6 +10,7 @@ __pycache__/
 # Artefatos gerados do projeto
 historico/
 uploads/
+docs/
 faiss_index/
 data/
 chunks.json
