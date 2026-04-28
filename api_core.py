@@ -612,7 +612,7 @@ def _raise_http_exception(exc: Exception) -> None:
     if isinstance(exc, FileNotFoundError):
         raise HTTPException(
             status_code=503,
-            detail="ÃƒÂndice FAISS nÃƒÂ£o encontrado. Execute /reprocessar primeiro.",
+            detail="Indice vetorial (Qdrant) nao encontrado. Execute /reprocessar primeiro.",
         ) from exc
     if isinstance(exc, (requests.ConnectionError, requests.Timeout)):
         raise HTTPException(

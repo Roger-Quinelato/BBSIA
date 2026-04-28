@@ -14,7 +14,7 @@ from config import get_env_bool, get_env_int, get_env_list, get_env_str
 Motor RAG para o projeto BBSIA.
 
 Arquitetura:
-  - Dense retrieval (FAISS + embeddings)
+  - Dense retrieval (Qdrant local + embeddings)
   - Sparse retrieval (BM25 local)
   - Fusão híbrida (Reciprocal Rank Fusion)
   - Re-ranking opcional com cross-encoder
@@ -208,7 +208,7 @@ def _verify_index_manifest(index_path: str, metadata_path: str, manifest_path: s
     }
     mismatches = [name for name, digest in expected.items() if not digest or digest != actual[name]]
     if mismatches:
-        raise ValueError(f"Falha de integridade no indice FAISS: {', '.join(mismatches)}")
+        raise ValueError(f"Falha de integridade no indice vetorial (Qdrant/metadata): {', '.join(mismatches)}")
 
 def _build_sparse_index(chunks: list[dict]) -> tuple[list[Counter], list[int], dict[str, int], float]:
     token_counts: list[Counter] = []
@@ -281,6 +281,7 @@ def cache_health(load_if_empty: bool = False) -> dict:
         "reranker_model": RERANKER_MODEL if ENABLE_RERANKER else None,
         "total_chunks": len(chunks),
         "faiss_vectors": embedding_count,
+        "qdrant_vectors": embedding_count,
         "embedding_dim": embedding_dim,
         "embeddings_matrix_shape": list(embeddings.shape) if isinstance(embeddings, np.ndarray) else None,
         "loaded_at_utc": data.get("loaded_at_utc") or index_store.get_status("loaded_at_utc"),

@@ -1,6 +1,6 @@
 """
 Fase 3 do pipeline RAG BBSIA:
-gera embeddings dos chunks e cria um indice FAISS persistente.
+gera embeddings dos chunks e indexa no Qdrant local.
 
 Uso:
   python embedding.py

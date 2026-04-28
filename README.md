@@ -18,11 +18,11 @@ documentos_extraidos_v2.json
 chunking.py       ──► chunks enriquecidos com metadados bibliográficos
     │
     ▼
-embedding.py      ──► data/faiss_index/
+embedding.py      ──► Qdrant local (`data/qdrant_db/`) + metadados (`data/faiss_index/`)
     │
     ▼
 rag_engine.py
-    ├── Dense retrieval   (FAISS / Inner Product)
+    ├── Dense retrieval   (Qdrant local / cosine)
     ├── Sparse retrieval  (BM25 nativo)
     ├── Fusão RRF         (Reciprocal Rank Fusion)
     ├── Re-ranking        (CrossEncoder, opcional)
@@ -40,7 +40,7 @@ api.py            ──► REST API FastAPI + interface web em /web
 | `extrator_pdf_v2.py` | Extração de PDFs com PyMuPDF (texto, headings, tabelas, OCR fallback) |
 | `classificador_artigo.py` | Classificação inteligente de documentos: heurísticas + LLM (Ollama) → `data/biblioteca.json` |
 | `chunking.py` | Chunking parent-child com metadados bibliográficos (título, autores, ano) |
-| `embedding.py` | Geração de embeddings + índice FAISS persistente |
+| `embedding.py` | Geração de embeddings + indexação dense no Qdrant local |
 | `rag_engine.py` | Motor RAG híbrido (dense + sparse + RRF) com faithfulness check e citações ricas |
 | `api.py` | API REST FastAPI com auth, rate limiting, upload e interface web |
 | `config.py` | Configuração centralizada via `.env` (sem dependências externas) |
@@ -176,7 +176,7 @@ PDF_VALIDATION_TIMEOUT_SEC=30
 | `POST` | `/upload` | Upload de PDFs (com validação de tamanho) |
 | `POST` | `/upload-metadata` | Cadastro de metadados para uploads |
 | `POST` | `/reprocessar` | Reprocessa a base em background (não-bloqueante) |
-| `POST` | `/recarregar` | Recarrega o índice FAISS em memória |
+| `POST` | `/recarregar` | Recarrega o índice vetorial (Qdrant) em memória |
 
 ## Upload com metadados (área/assunto)
 
@@ -296,7 +296,7 @@ Resumo:
 
 - `data/` e `uploads/` ficam fora do Git (cache/artefatos de execução).
 - `docs/` também fica fora do Git neste repositório. Ela contém PDFs/planilhas de referência usados para gerar a base RAG.
-- `data/faiss_index/`, `data/chunks.json`, `data/biblioteca.json` e `data/documentos_extraidos_v2.json` são artefatos gerados localmente pelo pipeline.
+- `data/qdrant_db/`, `data/faiss_index/`, `data/chunks.json`, `data/biblioteca.json` e `data/documentos_extraidos_v2.json` são artefatos gerados localmente pelo pipeline.
 - Se o projeto for compartilhado por `git clone`, o colega precisa receber os arquivos de `docs/` por outro canal ou adicionar seus próprios PDFs antes de rodar o pipeline.
 - Se o projeto for compartilhado por `.zip` da pasta inteira, incluir `docs/` e, opcionalmente, `data/` para evitar reprocessamento inicial.
 

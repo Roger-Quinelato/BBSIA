@@ -60,7 +60,7 @@ def recarregar_indice(request: Request) -> dict[str, str]:
     try:
         reload_resources()
         _record_event("index_reload", request, status="ok")
-        return {"status": "ok", "mensagem": "Indice FAISS recarregado em memoria."}
+        return {"status": "ok", "mensagem": "Indice vetorial (Qdrant) recarregado em memoria."}
     except Exception as exc:
         _record_event("index_reload_failed", request, level=logging.ERROR, error=str(exc))
         _raise_http_exception(exc)
