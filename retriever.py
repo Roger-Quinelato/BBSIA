@@ -9,6 +9,7 @@ import threading
 import numpy as np
 import requests
 from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from vector_store import dense_ranked_candidates, get_local_qdrant_client, vector_store_health
 
 """
 Motor RAG para o projeto BBSIA.
@@ -111,7 +112,6 @@ class IndexStore:
 
     def _load_from_disk(self) -> dict:
         import json
-        from qdrant_client import QdrantClient
         from sentence_transformers import SentenceTransformer
         
         base_dir = _script_dir()
@@ -120,8 +120,7 @@ class IndexStore:
         if not os.path.exists(metadata_path):
             raise FileNotFoundError(f"Metadata nao encontrada em: {metadata_path}")
 
-        qdrant_path = os.path.join(DATA_DIR, "qdrant_db")
-        qclient = QdrantClient(path=qdrant_path)
+        qclient = get_local_qdrant_client(DATA_DIR)
 
         with open(metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
@@ -266,6 +265,7 @@ def cache_health(load_if_empty: bool = False) -> dict:
     data = index_store.get_data_if_loaded() or {}
     chunks = data.get("chunks") or []
     embeddings = data.get("embeddings")
+    qclient = data.get("qclient")
     embedding_count = len(chunks) if chunks else 0
     embedding_dim = EXPECTED_EMBEDDING_DIM
 
@@ -282,6 +282,7 @@ def cache_health(load_if_empty: bool = False) -> dict:
         "total_chunks": len(chunks),
         "faiss_vectors": embedding_count,
         "qdrant_vectors": embedding_count,
+        "vector_store": vector_store_health(qclient),
         "embedding_dim": embedding_dim,
         "embeddings_matrix_shape": list(embeddings.shape) if isinstance(embeddings, np.ndarray) else None,
         "loaded_at_utc": data.get("loaded_at_utc") or index_store.get_status("loaded_at_utc"),
@@ -339,56 +340,13 @@ def _dense_ranked_candidates(
     qclient: Any,
     top_n: int,
 ) -> tuple[list[int], dict[int, float]]:
-    from qdrant_client.models import Filter, FieldCondition, MatchAny
-
-    areas = list({_norm(v) for v in _as_list(filtro_area) if v.strip()})
-    assuntos = list({_norm(v) for v in _as_list(filtro_assunto) if v.strip()})
-
-    must_conditions = []
-    if areas:
-        must_conditions.append(
-            FieldCondition(key="area", match=MatchAny(any=areas))
-        )
-    if assuntos:
-        must_conditions.append(
-            FieldCondition(key="assuntos", match=MatchAny(any=assuntos))
-        )
-
-    query_filter = Filter(must=must_conditions) if must_conditions else None
-
-    try:
-        results = qclient.search(
-            collection_name="bbsia_chunks",
-            query_vector=query_vec.tolist(),
-            query_filter=query_filter,
-            limit=top_n
-        )
-    except Exception as e:
-        print("Qdrant search error:", e)
-        return [], {}
-
-    ranked = []
-    score_map = {}
-    for hit in results:
-        doc_id = hit.id
-        ranked.append(doc_id)
-        score_map[doc_id] = float(hit.score)
-
-    return ranked, score_map
-
-    # Com filtros: calcula similaridade no subconjunto.
-    eligible_embeddings = all_embeddings[eligible_ids]
-    scores = np.dot(eligible_embeddings, query_vec)
-
-    if top_n < len(scores):
-        top_pos = np.argpartition(-scores, top_n - 1)[:top_n]
-    else:
-        top_pos = np.arange(len(scores))
-    top_pos = top_pos[np.argsort(-scores[top_pos])]
-
-    ranked = [eligible_ids[int(pos)] for pos in top_pos]
-    score_map = {eligible_ids[int(pos)]: float(scores[int(pos)]) for pos in top_pos}
-    return ranked, score_map
+    return dense_ranked_candidates(
+        query_vec=query_vec,
+        filtro_area=filtro_area,
+        filtro_assunto=filtro_assunto,
+        qclient=qclient,
+        top_n=top_n,
+    )
 
 def _bm25_score(
     query_tokens: list[str],
