@@ -32,13 +32,10 @@ EXPECTED_EMBEDDING_DIM = get_env_int("EMBEDDING_DIM", 1024, min_value=1, max_val
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
-INDEX_DIR = os.path.join(DATA_DIR, "faiss_index")
-
-INDEX_FILE = "index.faiss"
+METADATA_DIR = os.path.join(DATA_DIR, "qdrant_index_metadata")
+LEGACY_METADATA_DIR = os.path.join(DATA_DIR, "faiss_index")
 
 METADATA_FILE = "metadata.json"
-
-MANIFEST_FILE = "manifest.json"
 
 DEFAULT_TOP_K = get_env_int("TOP_K", 5, min_value=1, max_value=20)
 
@@ -110,10 +107,7 @@ class IndexStore:
         from sentence_transformers import SentenceTransformer
         
         base_dir = _script_dir()
-        metadata_path = os.path.join(base_dir, INDEX_DIR, METADATA_FILE)
-
-        if not os.path.exists(metadata_path):
-            raise FileNotFoundError(f"Metadata nao encontrada em: {metadata_path}")
+        metadata_path = _resolve_metadata_path(base_dir)
 
         qclient = get_local_qdrant_client(DATA_DIR)
 
@@ -145,6 +139,7 @@ class IndexStore:
             "model": model,
             "embeddings": None,
             "embedding_model": embedding_model,
+            "metadata_path": metadata_path,
             "token_counts": token_counts,
             "doc_lengths": doc_lengths,
             "doc_freq": doc_freq,
@@ -157,6 +152,17 @@ index_store = IndexStore()
 
 def _script_dir() -> str:
     return os.path.dirname(os.path.abspath(__file__))
+
+
+def _resolve_metadata_path(base_dir: str) -> str:
+    """Usa metadata oficial nova e aceita fallback legado temporario."""
+    preferred = os.path.join(base_dir, METADATA_DIR, METADATA_FILE)
+    legacy = os.path.join(base_dir, LEGACY_METADATA_DIR, METADATA_FILE)
+    if os.path.exists(preferred):
+        return preferred
+    if os.path.exists(legacy):
+        return legacy
+    raise FileNotFoundError(f"Metadata nao encontrada em: {preferred} nem em {legacy}")
 
 def _as_list(value: str | Iterable[str] | None) -> list[str]:
     if value is None:
