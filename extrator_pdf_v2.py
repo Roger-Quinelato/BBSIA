@@ -19,7 +19,7 @@ from typing import Any
 import fitz  # PyMuPDF
 
 try:
-    from classificador_artigo import classificar_e_registrar
+    from classificador_artigo import atualizar_biblioteca, classificar_de_payload
     _HAS_CLASSIFICADOR = True
 except ImportError:
     _HAS_CLASSIFICADOR = False
@@ -410,12 +410,18 @@ def run_extraction() -> dict[str, Any]:
 
         try:
             pages = extract_text_from_pdf(pdf_path)
+            documento_payload = {"documento": doc_label, "paginas": pages}
 
             # Classifica o documento e atualiza biblioteca.json
             doc_metadados = None
             if _HAS_CLASSIFICADOR:
                 try:
-                    metadado = classificar_e_registrar(pdf_path, usar_llm=True)
+                    metadado = classificar_de_payload(
+                        documento=documento_payload,
+                        pdf_path=pdf_path,
+                        usar_llm=True,
+                    )
+                    atualizar_biblioteca(metadado)
                     doc_metadados = metadado.model_dump()
                     t = metadado.titulo
                     LOGGER.info(

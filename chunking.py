@@ -1,9 +1,9 @@
-"""
+﻿"""
 Chunking estruturado para o pipeline RAG do BBSIA.
 
-Preferencialmente le documentos_extraidos_v2.json, gerado pelo extrator v2,
-e cria chunks parent-child com metadados de documento, pagina, secao e tipo
-de conteudo. Se o JSON nao existir, usa o parser legado de textos_extraidos_v2.txt.
+Le documentos_extraidos_v2.json, gerado pelo extrator v2, e cria chunks
+parent-child com metadados de documento, pagina, secao e tipo de conteudo.
+O arquivo estruturado e entrada obrigatoria deste modulo.
 """
 
 from __future__ import annotations
@@ -14,13 +14,11 @@ import os
 import re
 from typing import Any, Iterable
 
-# ParÃ¢metros de chunking:
+# ParÃƒÂ¢metros de chunking:
 # - CHILD_CHUNK_SIZE : tamanho (em palavras) dos child chunks (usados no embedding)
-# - CHILD_CHUNK_OVERLAP: sobreposiÃ§Ã£o entre child chunks consecutivos
-# - PARENT_MAX_WORDS : limite mÃ¡ximo de palavras no parent_text enviado ao contexto
+# - CHILD_CHUNK_OVERLAP: sobreposiÃƒÂ§ÃƒÂ£o entre child chunks consecutivos
+# - PARENT_MAX_WORDS : limite mÃƒÂ¡ximo de palavras no parent_text enviado ao contexto
 
-PARENT_CHUNK_SIZE = 500  # usado apenas em _legacy_parent_blocks
-CHUNK_OVERLAP = 75
 CHILD_CHUNK_SIZE = 300
 CHILD_CHUNK_OVERLAP = 35
 PARENT_MAX_WORDS = 900
@@ -71,7 +69,7 @@ def normalize_upload_doc_name(doc_name: str) -> str:
 
 
 def _load_biblioteca() -> dict:
-    """Carrega o catÃ¡logo biblioteca.json indexado por nome de arquivo."""
+    """Carrega o catÃƒÂ¡logo biblioteca.json indexado por nome de arquivo."""
     path = os.path.join(_script_dir(), BIBLIOTECA_FILE)
     if not os.path.exists(path):
         return {}
@@ -95,13 +93,13 @@ def get_doc_metadata(doc_name: str) -> dict:
     """Retorna area, assuntos e metadados de autoria para um documento.
 
     Prioridade para area/assuntos:
-      1. upload_metadata (vem do usuÃ¡rio)
+      1. upload_metadata (vem do usuÃƒÂ¡rio)
       2. CATEGORIAS_DOCUMENTOS (mapeamento hardcoded legado)
-      3. biblioteca.json (classificaÃ§Ã£o automÃ¡tica)
-      4. Fallback genÃ©rico
+      3. biblioteca.json (classificaÃƒÂ§ÃƒÂ£o automÃƒÂ¡tica)
+      4. Fallback genÃƒÂ©rico
 
-    Campos de autoria (doc_titulo, doc_autores, doc_ano) vÃªm de
-    biblioteca.json quando disponÃ­veis.
+    Campos de autoria (doc_titulo, doc_autores, doc_ano) vÃƒÂªm de
+    biblioteca.json quando disponÃƒÂ­veis.
     """
     normalized_name = normalize_upload_doc_name(doc_name)
     base_name = os.path.basename(doc_name)
@@ -148,50 +146,6 @@ def get_doc_metadata(doc_name: str) -> dict:
 
     # 4. Fallback
     return {"area": "geral", "assuntos": ["geral"], **authorship}
-
-
-def load_raw_text(filepath: str) -> str:
-    """Carrega o texto bruto do arquivo legado."""
-    with open(filepath, "r", encoding="utf-8") as f:
-        return f.read()
-
-
-def parse_documents(raw_text: str) -> list[dict]:
-    """
-    Separa texto legado em blocos por documento e pagina.
-    Retorna uma lista de dicts: {documento, pagina, texto_bruto}
-    """
-    doc_pattern = re.compile(
-        r"={10,}\s*\n\s*DOCUMENTO:\s*(.+?)\s*\n\s*={10,}",
-        re.MULTILINE,
-    )
-    splits = doc_pattern.split(raw_text)
-
-    documents = []
-    i = 1
-    while i < len(splits) - 1:
-        doc_name = splits[i].strip()
-        doc_content = splits[i + 1]
-
-        page_pattern = re.compile(r"---\s*(?:P[aÃ¡]gina|Pagina)\s*(\d+)\s*---", re.IGNORECASE)
-        page_splits = page_pattern.split(doc_content)
-
-        j = 1
-        while j < len(page_splits) - 1:
-            page_num = int(page_splits[j])
-            page_text = page_splits[j + 1]
-            documents.append(
-                {
-                    "documento": doc_name,
-                    "pagina": page_num,
-                    "texto_bruto": page_text,
-                }
-            )
-            j += 2
-
-        i += 2
-
-    return documents
 
 
 def clean_text(text: str) -> str:
@@ -368,26 +322,6 @@ def _structured_parent_blocks(payload: dict[str, Any]) -> list[dict[str, Any]]:
 
             flush_text()
 
-    return parents
-
-
-def _legacy_parent_blocks(raw_text: str) -> list[dict[str, Any]]:
-    parents: list[dict[str, Any]] = []
-    for block in parse_documents(raw_text):
-        cleaned = clean_text(block["texto_bruto"])
-        if not cleaned or _word_count(cleaned) < 10:
-            continue
-        parents.append(
-            {
-                "documento": block["documento"],
-                "pagina": block["pagina"],
-                "section_heading": None,
-                "content_type": "text",
-                "texto": cleaned,
-                "ocr_usado": False,
-                "table_index": None,
-            }
-        )
     return parents
 
 

@@ -116,3 +116,47 @@ def test_list_pdf_files_so_considera_uploads_approved(tmp_path, monkeypatch):
     assert "aprovado.pdf" in as_text
     assert "doc.pdf" in as_text
     assert "bloqueado.pdf" not in as_text
+
+
+def test_run_extraction_usa_classificacao_por_payload(monkeypatch, tmp_path):
+    fake_pdf = str(tmp_path / "doc.pdf")
+    (tmp_path / "doc.pdf").write_bytes(b"%PDF-1.4")
+
+    calls: dict[str, object] = {}
+
+    monkeypatch.setattr(extrator_pdf_v2, "list_pdf_files", lambda: [fake_pdf])
+    monkeypatch.setattr(
+        extrator_pdf_v2,
+        "extract_text_from_pdf",
+        lambda _path: [{"pagina": 1, "texto": "texto", "elementos": [], "ocr_usado": False}],
+    )
+    monkeypatch.setattr(extrator_pdf_v2, "_HAS_CLASSIFICADOR", True)
+
+    def _fake_classificar_de_payload(documento, pdf_path=None, usar_llm=True):
+        calls["documento"] = documento
+        calls["pdf_path"] = pdf_path
+        calls["usar_llm"] = usar_llm
+
+        class _Meta:
+            titulo = "Doc Teste"
+
+            def model_dump(self):
+                return {"titulo": "Doc Teste", "documento_original": documento.get("documento", "")}
+
+        return _Meta()
+
+    monkeypatch.setattr(extrator_pdf_v2, "classificar_de_payload", _fake_classificar_de_payload)
+    monkeypatch.setattr(extrator_pdf_v2, "atualizar_biblioteca", lambda _m: None)
+
+    out_file = tmp_path / "documentos_extraidos_v2.json"
+    monkeypatch.setattr(extrator_pdf_v2, "STRUCTURED_OUTPUT_FILE", str(out_file))
+    monkeypatch.setattr(extrator_pdf_v2, "INPUT_DIR", str(tmp_path))
+
+    result = extrator_pdf_v2.run_extraction()
+
+    assert result["pdfs_processados"] == 1
+    assert calls["pdf_path"] == fake_pdf
+    payload = calls["documento"]
+    assert isinstance(payload, dict)
+    assert payload.get("documento") == "doc.pdf"
+    assert isinstance(payload.get("paginas"), list)
