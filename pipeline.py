@@ -76,7 +76,7 @@ def _extractive_fallback_answer(pergunta: str, results: list[dict], error: Excep
         + f"Detalhe tecnico: {error}"
     )
 
-from retriever import search, _build_context, MIN_DENSE_SCORE_FOR_ANSWER, DEFAULT_TOP_K
+from retriever import search, _build_context, _format_citation_label, MIN_DENSE_SCORE_FOR_ANSWER, DEFAULT_TOP_K
 from generator import query_ollama, build_prompt, DEFAULT_LLM_MODEL, NO_EVIDENCE_RESPONSE
 from faithfulness import _faithfulness_check, _unique_sources
 from reranker import RERANKER_TOP_N

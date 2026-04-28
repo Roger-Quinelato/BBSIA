@@ -59,8 +59,13 @@ HYBRID_SPARSE_CANDIDATES = get_env_int("HYBRID_SPARSE_CANDIDATES", 80, min_value
 RRF_K = get_env_int("RRF_K", 60, min_value=1, max_value=200)
 
 PRELOAD_RAG_ON_STARTUP = get_env_bool("PRELOAD_RAG_ON_STARTUP", True)
+PRELOAD_RERANKER_ON_STARTUP = get_env_bool("PRELOAD_RERANKER_ON_STARTUP", False)
 
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
+E5_QUERY_PREFIX = "query: "
+
+RERANKER_MODEL = get_env_str("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+RERANKER_CANDIDATES = get_env_int("RERANKER_CANDIDATES", 20, min_value=3, max_value=200)
 
 class IndexStore:
     def __init__(self):
@@ -260,6 +265,7 @@ def cache_health(load_if_empty: bool = False) -> dict:
 
     data = index_store.get_data_if_loaded() or {}
     chunks = data.get("chunks") or []
+    embeddings = data.get("embeddings")
     embedding_count = len(chunks) if chunks else 0
     embedding_dim = EXPECTED_EMBEDDING_DIM
 
@@ -483,7 +489,7 @@ def _dedupe_by_parent(candidate_ids: list[int], chunks: list[dict], limit: int) 
 
     return selected
 
-from reranker import _rerank_results, ENABLE_RERANKER
+from reranker import ENABLE_RERANKER, _get_reranker
 
 def search(
     query: str,
@@ -498,8 +504,7 @@ def search(
     data = _load_resources()
     chunks = data["chunks"]
     model = data["model"]
-    index = data["index"]
-    all_embeddings = data["embeddings"]
+    qclient = data["qclient"]
     token_counts = data["token_counts"]
     doc_lengths = data["doc_lengths"]
     doc_freq = data["doc_freq"]
@@ -815,5 +820,5 @@ def calibrate_dense_threshold(
     }
 
 if __name__ == "__main__":
-    main()
+    pass
 
