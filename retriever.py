@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, hashlib, ipaddress, json, math, os, re
+import argparse, ipaddress, json, math, os, re
 from urllib.parse import urlparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -20,11 +20,6 @@ Arquitetura:
   - Fusão híbrida (Reciprocal Rank Fusion)
   - Re-ranking opcional com cross-encoder
 """
-
-try:
-    import faiss
-except ImportError as exc:  # pragma: no cover
-    raise ImportError("Instale faiss-cpu para usar rag_engine.py") from exc
 
 try:
     from sentence_transformers import CrossEncoder, SentenceTransformer
@@ -180,35 +175,6 @@ def _format_query_for_embedding(query: str) -> str:
     """Aplica o prefixo recomendado para modelos E5 em consultas."""
     return f"{E5_QUERY_PREFIX}{(query or '').strip()}"
 
-def _sha256_file(path: str) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as f:
-        for block in iter(lambda: f.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-def _verify_index_manifest(index_path: str, metadata_path: str, manifest_path: str) -> None:
-    if not os.path.exists(manifest_path):
-        raise FileNotFoundError(f"Manifest de integridade nao encontrado em: {manifest_path}")
-
-    with open(manifest_path, "r", encoding="utf-8") as f:
-        manifest = json.load(f)
-
-    if not isinstance(manifest, dict):
-        raise ValueError("Manifest de integridade invalido.")
-
-    expected = {
-        INDEX_FILE: manifest.get(INDEX_FILE),
-        METADATA_FILE: manifest.get(METADATA_FILE),
-    }
-    actual = {
-        INDEX_FILE: _sha256_file(index_path),
-        METADATA_FILE: _sha256_file(metadata_path),
-    }
-    mismatches = [name for name, digest in expected.items() if not digest or digest != actual[name]]
-    if mismatches:
-        raise ValueError(f"Falha de integridade no indice vetorial (Qdrant/metadata): {', '.join(mismatches)}")
-
 def _build_sparse_index(chunks: list[dict]) -> tuple[list[Counter], list[int], dict[str, int], float]:
     token_counts: list[Counter] = []
     doc_lengths: list[int] = []
@@ -280,6 +246,8 @@ def cache_health(load_if_empty: bool = False) -> dict:
         "embedding_model": data.get("embedding_model") or EMBEDDING_MODEL_FALLBACK,
         "reranker_model": RERANKER_MODEL if ENABLE_RERANKER else None,
         "total_chunks": len(chunks),
+        "dense_vectors": embedding_count,
+        # Alias de compatibilidade (deprecated): manter enquanto clientes migram.
         "faiss_vectors": embedding_count,
         "qdrant_vectors": embedding_count,
         "vector_store": vector_store_health(qclient),
