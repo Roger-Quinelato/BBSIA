@@ -1,4 +1,4 @@
-﻿"""
+"""
 Chunking estruturado para o pipeline RAG do BBSIA.
 
 Le documentos_extraidos_v2.json, gerado pelo extrator v2, e cria chunks
@@ -14,10 +14,10 @@ import os
 import re
 from typing import Any, Iterable
 
-# ParÃƒÂ¢metros de chunking:
+# Parâmetros de chunking:
 # - CHILD_CHUNK_SIZE : tamanho (em palavras) dos child chunks (usados no embedding)
-# - CHILD_CHUNK_OVERLAP: sobreposiÃƒÂ§ÃƒÂ£o entre child chunks consecutivos
-# - PARENT_MAX_WORDS : limite mÃƒÂ¡ximo de palavras no parent_text enviado ao contexto
+# - CHILD_CHUNK_OVERLAP: sobreposição entre child chunks consecutivos
+# - PARENT_MAX_WORDS : limite máximo de palavras no parent_text enviado ao contexto
 
 CHILD_CHUNK_SIZE = 300
 CHILD_CHUNK_OVERLAP = 35
@@ -69,7 +69,7 @@ def normalize_upload_doc_name(doc_name: str) -> str:
 
 
 def _load_biblioteca() -> dict:
-    """Carrega o catÃƒÂ¡logo biblioteca.json indexado por nome de arquivo."""
+    """Carrega o catálogo biblioteca.json indexado por nome de arquivo."""
     path = os.path.join(_script_dir(), BIBLIOTECA_FILE)
     if not os.path.exists(path):
         return {}
@@ -93,13 +93,13 @@ def get_doc_metadata(doc_name: str) -> dict:
     """Retorna area, assuntos e metadados de autoria para um documento.
 
     Prioridade para area/assuntos:
-      1. upload_metadata (vem do usuÃƒÂ¡rio)
+      1. upload_metadata (vem do usuário)
       2. CATEGORIAS_DOCUMENTOS (mapeamento hardcoded legado)
-      3. biblioteca.json (classificaÃƒÂ§ÃƒÂ£o automÃƒÂ¡tica)
-      4. Fallback genÃƒÂ©rico
+      3. biblioteca.json (classificação automática)
+      4. Fallback genérico
 
-    Campos de autoria (doc_titulo, doc_autores, doc_ano) vÃƒÂªm de
-    biblioteca.json quando disponÃƒÂ­veis.
+    Campos de autoria (doc_titulo, doc_autores, doc_ano) vêm de
+    biblioteca.json quando disponíveis.
     """
     normalized_name = normalize_upload_doc_name(doc_name)
     base_name = os.path.basename(doc_name)

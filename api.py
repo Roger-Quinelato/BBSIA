@@ -1,4 +1,4 @@
-﻿"""
+"""
 API REST do Chatbot RAG BBSIA.
 
 Execucao:
