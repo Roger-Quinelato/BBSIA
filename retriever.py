@@ -9,6 +9,7 @@ import threading
 import numpy as np
 import requests
 from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from query_planning import plan_query
 from vector_store import dense_ranked_candidates, get_local_qdrant_client, vector_store_health
 
 """
@@ -53,6 +54,7 @@ RRF_K = get_env_int("RRF_K", 60, min_value=1, max_value=200)
 
 PRELOAD_RAG_ON_STARTUP = get_env_bool("PRELOAD_RAG_ON_STARTUP", True)
 PRELOAD_RERANKER_ON_STARTUP = get_env_bool("PRELOAD_RERANKER_ON_STARTUP", False)
+ENABLE_QUERY_PLANNING = get_env_bool("ENABLE_QUERY_PLANNING", False)
 
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
 E5_QUERY_PREFIX = "query: "
@@ -170,6 +172,9 @@ def _as_list(value: str | Iterable[str] | None) -> list[str]:
     if isinstance(value, str):
         return [value]
     return [v for v in value if isinstance(v, str)]
+
+def _has_filter_value(value: str | Iterable[str] | None) -> bool:
+    return any(v.strip() for v in _as_list(value))
 
 def _norm(value: str) -> str:
     return value.strip().lower()
@@ -433,6 +438,13 @@ def search(
     query = (query or "").strip()
     if not query:
         return []
+
+    if ENABLE_QUERY_PLANNING:
+        plan = plan_query(query)
+        if not _has_filter_value(filtro_area) and plan.filtro_area:
+            filtro_area = plan.filtro_area
+        if not _has_filter_value(filtro_assunto) and plan.filtro_assunto:
+            filtro_assunto = plan.filtro_assunto
 
     data = _load_resources()
     chunks = data["chunks"]

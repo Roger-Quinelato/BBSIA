@@ -111,6 +111,7 @@ class EmbeddingsSettings:
 class RetrievalSettings:
     top_k: int
     max_context_chunks: int
+    enable_query_planning: bool
     hybrid_dense_candidates: int
     hybrid_sparse_candidates: int
     rrf_k: int
@@ -175,6 +176,7 @@ def load_settings() -> AppSettings:
         retrieval=RetrievalSettings(
             top_k=get_env_int("TOP_K", 5, min_value=1, max_value=20),
             max_context_chunks=get_env_int("MAX_CONTEXT_CHUNKS", 6, min_value=1, max_value=10),
+            enable_query_planning=get_env_bool("ENABLE_QUERY_PLANNING", False),
             hybrid_dense_candidates=get_env_int("HYBRID_DENSE_CANDIDATES", 40, min_value=5, max_value=2000),
             hybrid_sparse_candidates=get_env_int("HYBRID_SPARSE_CANDIDATES", 80, min_value=5, max_value=5000),
             rrf_k=get_env_int("RRF_K", 60, min_value=1, max_value=200),
