@@ -239,7 +239,7 @@ class ChatRequest(BaseModel):
     @classmethod
     def validar_pergunta(cls, value: str) -> str:
         if not value or not value.strip():
-        raise ValueError("O campo 'pergunta' é obrigatório e não pode estar vazio.")
+            raise ValueError("O campo 'pergunta' é obrigatório e não pode estar vazio.")
         return value.strip()
 
 
@@ -253,7 +253,7 @@ class SearchRequest(BaseModel):
     @classmethod
     def validar_query(cls, value: str) -> str:
         if not value or not value.strip():
-        raise ValueError("O campo 'query' é obrigatório e não pode estar vazio.")
+            raise ValueError("O campo 'query' é obrigatório e não pode estar vazio.")
         return value.strip()
 
 
@@ -300,7 +300,7 @@ class UploadMetadataRequest(BaseModel):
     @classmethod
     def validar_campos_texto(cls, value: str) -> str:
         if not value or not value.strip():
-        raise ValueError("Campo obrigatório não pode estar vazio.")
+            raise ValueError("Campo obrigatório não pode estar vazio.")
         return value.strip()
 
     @field_validator("assuntos")

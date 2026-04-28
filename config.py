@@ -195,8 +195,6 @@ def load_settings() -> AppSettings:
     )
 
 
-settings = load_settings()
-
-
-# Carrega .env no import.
+# Carrega .env no import antes de materializar settings.
 load_env_file()
+settings = load_settings()
