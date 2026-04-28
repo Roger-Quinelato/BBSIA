@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory = $false)]
-  [ValidateSet("test", "lint", "format", "typecheck", "run", "reprocess", "install", "install-dev")]
+  [ValidateSet("test", "lint", "format", "typecheck", "run", "reprocess", "solucoes-embedding", "install", "install-dev")]
   [string]$Task = "test"
 )
 
@@ -36,7 +36,7 @@ switch ($Task) {
     break
   }
   "typecheck" {
-    & $python -m mypy api.py rag_engine.py reprocess_worker.py
+    & $python -m mypy api.py rag_engine.py reprocess_worker.py catalogo_solucoes.py
     break
   }
   "run" {
@@ -47,5 +47,8 @@ switch ($Task) {
     Invoke-RestMethod -Method Post -Uri "http://localhost:8000/reprocessar"
     break
   }
+  "solucoes-embedding" {
+    & $python scripts/gerar_embeddings_solucoes.py
+    break
+  }
 }
-

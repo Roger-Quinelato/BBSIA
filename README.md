@@ -202,11 +202,12 @@ Após o upload, execute `POST /reprocessar`. O progresso pode ser acompanhado vi
 .venv\Scripts\python.exe -m pytest -v
 ```
 
-Cobertura atual — **50 testes**:
+Cobertura atual — **55 testes**:
 
 | Arquivo | Testes | Escopo |
 |---------|--------|--------|
 | `test_classificador.py` | 14 | Título, autores, ano, tipo, fallback LLM |
+| `test_catalogo_solucoes.py` | 5 | Schema JSON, validação do catálogo e materialização para embeddings |
 | `test_api.py` | 16 | Status, health RAG, search, chat, reprocessar, upload/quarentena, `/biblioteca`, `/filtros`, autoria nos chunks |
 | `test_extraction_chunking.py` | 7 | Extração PDF, chunking, metadados, fallback, uploads aprovados |
 | `test_embedding.py` | 5 | `_load_chunks`: arquivo ausente, formato inválido, sucesso |
@@ -218,7 +219,8 @@ Cobertura atual — **50 testes**:
 | Script | Descrição |
 |--------|-----------|
 | `scripts/calibrar_threshold.py` | Calibra `MIN_DENSE_SCORE_PERCENT` com queries reais e salva estatísticas |
-| `scripts/dev.ps1` | Atalhos de desenvolvimento no Windows (test, lint, format, typecheck, run, reprocess) |
+| `scripts/gerar_embeddings_solucoes.py` | Valida `catalogo/solucoes_piloto.json` e gera embeddings batch em `data/solucoes_faiss_index/` |
+| `scripts/dev.ps1` | Atalhos de desenvolvimento no Windows (test, lint, format, typecheck, run, reprocess, solucoes-embedding) |
 
 ```bash
 python scripts/calibrar_threshold.py
@@ -233,6 +235,7 @@ PowerShell:
 .\scripts\dev.ps1 -Task lint
 .\scripts\dev.ps1 -Task run
 .\scripts\dev.ps1 -Task reprocess
+.\scripts\dev.ps1 -Task solucoes-embedding
 ```
 
 Makefile:
@@ -242,7 +245,52 @@ make test
 make lint
 make run
 make reprocess
+make solucoes-embedding
 ```
+
+## Catálogo de soluções piloto
+
+O projeto inclui um catálogo estruturado para soluções piloto:
+
+- Schema JSON: `schemas/solucao_piloto.schema.json`.
+- Dados piloto: `catalogo/solucoes_piloto.json`.
+- Validador/materializador: `catalogo_solucoes.py`.
+- Embeddings do catálogo: `scripts/gerar_embeddings_solucoes.py`.
+
+O schema mínimo possui 10 campos obrigatórios:
+
+| Campo | Finalidade |
+|-------|------------|
+| `id` | Identificador estável da solução |
+| `nome` | Nome legível |
+| `descricao` | Resumo da solução |
+| `orgao` | Órgão/equipe responsável |
+| `area` | Área temática controlada |
+| `problema` | Problema público/operacional |
+| `solucao` | Descrição da abordagem |
+| `tecnologias` | Stack principal |
+| `status` | Etapa da solução |
+| `conformidade` | Bloco LGPD, soberania, modelo e open-source |
+
+Para validar e gerar embeddings batch do catálogo:
+
+```bash
+python catalogo_solucoes.py
+python scripts/gerar_embeddings_solucoes.py
+```
+
+O primeiro comando gera `data/solucoes_piloto_chunks.json`. O segundo também cria `data/solucoes_faiss_index/`.
+
+## Conformidade
+
+A revisão inicial está documentada em `CONFORMIDADE.md`.
+
+Resumo:
+
+- LGPD: o schema exige declaração de dados pessoais e base legal por solução.
+- Soberania: o piloto privilegia execução local (`ALLOW_REMOTE_OLLAMA=false`, `HF_LOCAL_FILES_ONLY=true`).
+- Open-source: o schema exige licença do modelo e lista de dependências principais.
+- Produção: soluções com `dados_pessoais` ou `hospedagem` como `a_confirmar` devem passar por revisão antes de uso real.
 
 ## Versionamento de dados
 

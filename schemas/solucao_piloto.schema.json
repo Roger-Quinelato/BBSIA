@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bbsia.local/schemas/solucao_piloto.schema.json",
+  "title": "Solucao Piloto BBSIA",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "nome",
+    "descricao",
+    "orgao",
+    "area",
+    "problema",
+    "solucao",
+    "tecnologias",
+    "status",
+    "conformidade"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,80}$"
+    },
+    "nome": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 160
+    },
+    "descricao": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1200
+    },
+    "orgao": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 160
+    },
+    "area": {
+      "type": "string",
+      "enum": ["ia", "saude", "infraestrutura", "juridico", "tecnologia", "geral"]
+    },
+    "problema": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 1000
+    },
+    "solucao": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 1600
+    },
+    "tecnologias": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 80
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ideacao", "piloto", "validacao", "producao", "suspensa"]
+    },
+    "conformidade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dados_pessoais",
+        "base_legal_lgpd",
+        "hospedagem",
+        "modelo",
+        "licenca_modelo",
+        "dependencias_open_source"
+      ],
+      "properties": {
+        "dados_pessoais": {
+          "type": "string",
+          "enum": ["nao", "sim", "a_confirmar"]
+        },
+        "base_legal_lgpd": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 240
+        },
+        "hospedagem": {
+          "type": "string",
+          "enum": ["local", "nuvem-brasil", "nuvem-exterior", "hibrida", "a_confirmar"]
+        },
+        "modelo": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "licenca_modelo": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "dependencias_open_source": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

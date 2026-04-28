@@ -1,0 +1,21 @@
+[
+  {
+    "id": "triagem-rag-bbsia",
+    "nome": "Triagem RAG para consultas sobre IA",
+    "descricao": "Assistente local para responder perguntas sobre documentos do BBSIA com recuperacao semantica, busca lexical, citacoes e controle de fidelidade.",
+    "orgao": "LIIA / BBSIA",
+    "area": "ia",
+    "problema": "Equipes precisam localizar rapidamente evidencias em documentos tecnicos, juridicos e metodologicos sobre inteligencia artificial.",
+    "solucao": "Pipeline RAG local com extracao de PDF, catalogacao, chunking parent-child, embeddings E5, indice FAISS e API FastAPI para chat e busca.",
+    "tecnologias": ["Python", "FastAPI", "FAISS", "sentence-transformers", "Ollama"],
+    "status": "piloto",
+    "conformidade": {
+      "dados_pessoais": "a_confirmar",
+      "base_legal_lgpd": "Uso interno em avaliacao; revisar base legal antes de processar dados pessoais reais.",
+      "hospedagem": "local",
+      "modelo": "qwen3.5:7b-instruct",
+      "licenca_modelo": "a confirmar no registro oficial do modelo",
+      "dependencias_open_source": ["pymupdf", "sentence-transformers", "faiss-cpu", "fastapi", "uvicorn"]
+    }
+  }
+]

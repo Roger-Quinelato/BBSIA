@@ -17,6 +17,7 @@ dependencies = [
   "fastapi>=0.111.0",
   "uvicorn>=0.30.0",
   "python-multipart>=0.0.9",
+  "jsonschema>=4.22.0",
 ]
 
 [project.optional-dependencies]
@@ -55,4 +56,3 @@ warn_redundant_casts = true
 warn_unused_configs = true
 pretty = true
 exclude = "^(data|uploads|\\.venv)/"
-
