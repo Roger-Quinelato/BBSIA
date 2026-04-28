@@ -132,11 +132,39 @@ def run_embedding(
         )
 
     LOGGER.info("event=embedding_index_building dim=%s", dim)
-    index = faiss.IndexFlatIP(dim)
-    index.add(embeddings)
+    
+    qdrant_path = os.path.join(DATA_DIR, "qdrant_db")
+    from qdrant_client import QdrantClient
+    from qdrant_client.models import VectorParams, Distance, PointStruct
+    
+    client = QdrantClient(path=qdrant_path)
+    collection_name = "bbsia_chunks"
+    
+    if client.collection_exists(collection_name):
+        client.delete_collection(collection_name)
+        
+    client.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
+    )
+    
+    points = []
+    for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+        points.append(
+            PointStruct(
+                id=i,
+                vector=emb.tolist(),
+                payload=chunk
+            )
+        )
+    
+    batch_size_points = 500
+    for j in range(0, len(points), batch_size_points):
+        client.upload_points(collection_name=collection_name, points=points[j:j+batch_size_points])
 
     os.makedirs(os.path.dirname(index_path), exist_ok=True)
-    faiss.write_index(index, index_path)
+    with open(index_path, "w") as f:
+        f.write("QDRANT_MIGRATED")
 
     metadata_payload = {
         "model_name": model_name,

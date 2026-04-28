@@ -560,13 +560,66 @@ async function sendQuestion(event) {
       return;
     }
 
-    const data = await response.json();
-
     if (!response.ok) {
-      throw new Error(data.detail || "Falha ao consultar o chatbot.");
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || "Falha ao consultar o chatbot.");
     }
 
-    addMessage("assistant", data.resposta || "Sem resposta.", data.resultados || [], data.fontes || []);
+    // Criar placeholder para a mensagem
+    state.messages.push({ role: "assistant", content: "", resultados: [] });
+    const msgIndex = state.messages.length - 1;
+
+    const wrapper = document.createElement("article");
+    wrapper.className = "msg assistant";
+    wrapper.innerHTML = `
+      <div class="role">BBSIA</div>
+      <div class="content"><span class="streaming-cursor">▌</span></div>
+    `;
+    elements.messages.appendChild(wrapper);
+    elements.messages.scrollTop = elements.messages.scrollHeight;
+
+    const contentDiv = wrapper.querySelector(".content");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const data = JSON.parse(line);
+          if (data.type === "metadata") {
+            state.messages[msgIndex].resultados = data.resultados || [];
+            const sourcesHtml = renderRichSources(data.resultados || []);
+            if (sourcesHtml) {
+              const div = document.createElement("div");
+              div.innerHTML = sourcesHtml;
+              wrapper.appendChild(div.firstElementChild);
+            }
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+          } else if (data.type === "token") {
+            textBuffer += data.token;
+            state.messages[msgIndex].content = textBuffer;
+            contentDiv.innerHTML = escapeHtml(textBuffer).replaceAll("\n", "<br>") + '<span class="streaming-cursor">▌</span>';
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+          } else if (data.type === "error") {
+            textBuffer += "\n\n[Erro: " + data.message + "]";
+            contentDiv.innerHTML = escapeHtml(textBuffer).replaceAll("\n", "<br>");
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+          }
+        } catch (e) {
+          console.error("Parse error on chunk:", line);
+        }
+      }
+    }
+    // Remove o cursor
+    contentDiv.innerHTML = escapeHtml(textBuffer).replaceAll("\n", "<br>");
   } catch (error) {
     addMessage("assistant", `Erro: ${error.message || error}`);
   } finally {

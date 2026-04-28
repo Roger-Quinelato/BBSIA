@@ -1,0 +1,21 @@
+"Bases para Chatbot BBSIA e RAG.pdf":
+  area: "ia"
+  assuntos: ["rag", "chatbot", "pdf", "base de conhecimento"]
+"LIIA - InovaLabs 2026 DinÃ¢mica.pdf":
+  area: "tecnologia"
+  assuntos: ["inovacao", "metodologia", "oficina"]
+"LIIA BBSIA - Fase 1 MVP Banco Brasileiro de SoluÃ§Ãµes de IA v.02.pdf":
+  area: "ia"
+  assuntos: ["mvp", "rag", "api", "chatbot"]
+"LIIA BBSIA - Framework de ProntidÃ£o em IA.pdf":
+  area: "ia"
+  assuntos: ["maturidade", "prontidao", "avaliacao"]
+"LIIA BBSIA - Framework Ã‰tica em IA MGI.pdf":
+  area: "juridico"
+  assuntos: ["etica", "lgpd", "conformidade", "regulacao"]
+"LIIA BBSIA - Infra-estrutura.pdf":
+  area: "infraestrutura"
+  assuntos: ["servidores", "nuvem", "kubernetes", "seguranca"]
+"2022_MarinadeAlencarAraripeCoutinho.pdf":
+  area: "saude"
+  assuntos: ["saude", "pesquisa", "ia"]

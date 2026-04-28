@@ -1,4 +1,4 @@
-﻿"""
+"""
 Extrator de PDF v2 para o pipeline RAG do BBSIA.
 
 Gera dois artefatos:
@@ -238,7 +238,84 @@ def _ocr_page_if_needed(page: fitz.Page) -> str | None:
     return cleaned or None
 
 
-def extract_text_from_pdf(pdf_path: str) -> list[dict[str, Any]]:
+def extract_text_from_pdf(pdf_path: str) -> list[dict]:
+    try:
+        from docling.document_converter import DocumentConverter
+        from docling.datamodel.document import DocItemLabel
+    except ImportError:
+        LOGGER.warning("Docling nao instalado. Usando fallback PyMuPDF.")
+        return _fallback_extract_text_from_pdf(pdf_path)
+        
+    try:
+        converter = DocumentConverter()
+        result = converter.convert(pdf_path)
+        
+        pages_dict = {}
+        for item, level in result.document.iterate_items():
+            page_no = 1
+            if getattr(item, "prov", None) and len(item.prov) > 0:
+                page_no = item.prov[0].page_no
+                
+            if page_no not in pages_dict:
+                pages_dict[page_no] = {"elementos": [], "ocr_usado": False}
+                
+            label = getattr(item, "label", None)
+            
+            tipo = "text"
+            secao = None
+            texto = ""
+            
+            if label in [DocItemLabel.TITLE, DocItemLabel.SECTION_HEADER, DocItemLabel.PAGE_HEADER]:
+                tipo = "section"
+                texto = getattr(item, "text", "")
+            elif label == DocItemLabel.TABLE:
+                tipo = "table"
+                texto = item.export_to_markdown() if hasattr(item, "export_to_markdown") else ""
+            elif getattr(item, "text", None):
+                tipo = "text"
+                texto = item.text
+            
+            texto = texto.strip() if isinstance(texto, str) else ""
+            if not texto:
+                continue
+                
+            pages_dict[page_no]["elementos"].append({
+                "tipo": tipo,
+                "texto": texto,
+                "secao": secao
+            })
+            
+        for page_no, page_data in pages_dict.items():
+            curr_secao = None
+            for el in page_data["elementos"]:
+                if el["tipo"] == "section":
+                    curr_secao = el["texto"]
+                el["secao"] = curr_secao
+                
+        pages_list = []
+        for page_no in sorted(pages_dict.keys()):
+            elements = pages_dict[page_no]["elementos"]
+            page_text = "\n\n".join(e["texto"] for e in elements if e.get("tipo") != "section")
+            if not page_text.strip():
+                page_text = "\n\n".join(e["texto"] for e in elements)
+            
+            pages_list.append({
+                "pagina": page_no,
+                "texto": clean_extracted_text(page_text),
+                "elementos": elements,
+                "ocr_usado": pages_dict[page_no]["ocr_usado"]
+            })
+            
+        if not pages_list:
+            return _fallback_extract_text_from_pdf(pdf_path)
+            
+        return pages_list
+        
+    except Exception as exc:
+        LOGGER.error(f"Erro no Docling para {pdf_path}: {exc}")
+        return _fallback_extract_text_from_pdf(pdf_path)
+
+def _fallback_extract_text_from_pdf(pdf_path: str) -> list[dict[str, Any]]:
     """
     Extrai texto, titulos e tabelas de um PDF.
 

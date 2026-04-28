@@ -1,4 +1,4 @@
-﻿"""
+"""
 API REST do Chatbot RAG BBSIA.
 
 Execucao:
@@ -32,7 +32,7 @@ import requests
 from config import get_env_bool, get_env_int, get_env_list, get_env_str
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
@@ -42,6 +42,7 @@ from extrator_pdf_v2 import run_extraction
 from reprocess_worker import ReprocessWorker
 from rag_engine import (
     answer_question,
+    answer_question_stream,
     cache_health,
     list_available_areas,
     list_available_assuntos,
@@ -92,6 +93,8 @@ AUDIT_LOG_FILE = DATA_DIR / "audit.log"
 _REQUEST_LOG: dict[str, deque[float]] = defaultdict(deque)
 _REQUEST_LOCK = threading.Lock()
 _AUDIT_LOCK = threading.Lock()
+_CONVERSATION_HISTORY: dict[str, list[dict[str, str]]] = defaultdict(list)
+_CONVERSATION_LOCK = threading.Lock()
 LOGGER = logging.getLogger("bbsia.api")
 
 if not logging.getLogger().handlers:
@@ -207,6 +210,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+except ImportError:
+    LOGGER.warning("prometheus-fastapi-instrumentator nao instalado. Metricas desativadas.")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -224,12 +233,13 @@ class ChatRequest(BaseModel):
     top_k: int = Field(default=DEFAULT_TOP_K, ge=1, le=20)
     filtro_area: list[str] = Field(default_factory=list)
     filtro_assunto: list[str] = Field(default_factory=list)
+    conversation_id: str | None = None
 
     @field_validator("pergunta")
     @classmethod
     def validar_pergunta(cls, value: str) -> str:
         if not value or not value.strip():
-            raise ValueError("O campo 'pergunta' Ã© obrigatÃ³rio e nÃ£o pode estar vazio.")
+            raise ValueError("O campo 'pergunta' é obrigatório e não pode estar vazio.")
         return value.strip()
 
 
@@ -653,68 +663,45 @@ def _check_ollama() -> tuple[bool, list[str]]:
         return False, []
 
 
-
-@app.post("/chat", response_model=ChatResponse)
-def chat(payload: ChatRequest) -> ChatResponse:
+@app.post("/chat")
+async def chat(payload: ChatRequest) -> StreamingResponse:
     try:
         selected_model = validate_ollama_model(payload.modelo)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    try:
-        result = answer_question(
-            pergunta=payload.pergunta,
-            model=selected_model,
-            top_k=payload.top_k,
-            filtro_area=payload.filtro_area,
-            filtro_assunto=payload.filtro_assunto,
-        )
-        resultados = [_normalize_chunk(x) for x in result.get("resultados", [])]
-        fontes = [str(v) for v in result.get("fontes", [])]
-        resposta = str(result.get("resposta", "")).strip()
-        if not resposta:
-            resposta = "NÃ£o foi possÃ­vel gerar resposta no momento."
+    conversation_id = payload.conversation_id
+    history = []
+    if conversation_id:
+        with _CONVERSATION_LOCK:
+            history = _CONVERSATION_HISTORY.get(conversation_id, []).copy()
 
-        return ChatResponse(
-            resposta=resposta,
-            fontes=fontes,
-            resultados=resultados,
-            modelo_usado=selected_model,
-            total_fontes=len(fontes),
-            total_chunks_recuperados=len(resultados),
-        )
-    except Exception as exc:
-        # /chat precisa ser tolerante a falhas do LLM.
+    async def generate():
+        full_response = []
         try:
-            resultados = search(
-                query=payload.pergunta,
+            async for chunk in answer_question_stream(
+                pergunta=payload.pergunta,
+                model=selected_model,
                 top_k=payload.top_k,
                 filtro_area=payload.filtro_area,
                 filtro_assunto=payload.filtro_assunto,
-            )
-            chunks = [_normalize_chunk(x) for x in resultados]
-            fontes = []
-            seen = set()
-            for item in chunks:
-                src = f"{item['documento']} (p. {item['pagina']})"
-                if src not in seen:
-                    seen.add(src)
-                    fontes.append(src)
+                history=history,
+            ):
+                if chunk["type"] == "token":
+                    full_response.append(chunk.get("token", ""))
+                elif chunk["type"] == "metadata":
+                    chunk["resultados"] = [_normalize_chunk(x) for x in chunk.get("resultados", [])]
+                    chunk["modelo_usado"] = selected_model
+                yield json.dumps(chunk) + "\n"
+        except Exception as exc:
+            yield json.dumps({"type": "error", "message": str(exc)}) + "\n"
+        finally:
+            if conversation_id and full_response:
+                with _CONVERSATION_LOCK:
+                    _CONVERSATION_HISTORY[conversation_id].append({"role": "user", "content": payload.pergunta})
+                    _CONVERSATION_HISTORY[conversation_id].append({"role": "assistant", "content": "".join(full_response)})
 
-            return ChatResponse(
-                resposta=(
-                    "RecuperaÃ§Ã£o concluÃ­da, mas o modelo de linguagem nÃ£o respondeu. "
-                    f"Verifique o Ollama em {OLLAMA_URL} e tente novamente."
-                ),
-                fontes=fontes,
-                resultados=chunks,
-                modelo_usado=payload.modelo,
-                total_fontes=len(fontes),
-                total_chunks_recuperados=len(chunks),
-            )
-        except Exception as inner_exc:
-            _raise_http_exception(inner_exc if not isinstance(exc, FileNotFoundError) else exc)
-            raise  # pragma: no cover
+    return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 
 @app.post("/search", response_model=SearchResponse)

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Chunking estruturado para o pipeline RAG do BBSIA.
 
 Preferencialmente le documentos_extraidos_v2.json, gerado pelo extrator v2,
@@ -15,14 +15,13 @@ import re
 from typing import Any, Iterable
 
 # ParÃ¢metros de chunking:
-# - PARENT_CHUNK_SIZE: tamanho (em palavras) do parent chunk no pipeline legado
 # - CHILD_CHUNK_SIZE : tamanho (em palavras) dos child chunks (usados no embedding)
 # - CHILD_CHUNK_OVERLAP: sobreposiÃ§Ã£o entre child chunks consecutivos
 # - PARENT_MAX_WORDS : limite mÃ¡ximo de palavras no parent_text enviado ao contexto
 
 PARENT_CHUNK_SIZE = 500  # usado apenas em _legacy_parent_blocks
 CHUNK_OVERLAP = 75
-CHILD_CHUNK_SIZE = 180
+CHILD_CHUNK_SIZE = 300
 CHILD_CHUNK_OVERLAP = 35
 PARENT_MAX_WORDS = 900
 
@@ -33,37 +32,16 @@ UPLOAD_METADATA_FILE = os.path.join("uploads", "metadata_uploads.json")
 BIBLIOTECA_FILE = os.path.join(DATA_DIR, "biblioteca.json")
 LOGGER = logging.getLogger(__name__)
 
-
-CATEGORIAS_DOCUMENTOS = {
-    "Bases para Chatbot BBSIA e RAG.pdf": {
-        "area": "ia",
-        "assuntos": ["rag", "chatbot", "pdf", "base de conhecimento"],
-    },
-    "LIIA - InovaLabs 2026 DinÃ¢mica.pdf": {
-        "area": "tecnologia",
-        "assuntos": ["inovacao", "metodologia", "oficina"],
-    },
-    "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de SoluÃ§Ãµes de IA v.02.pdf": {
-        "area": "ia",
-        "assuntos": ["mvp", "rag", "api", "chatbot"],
-    },
-    "LIIA BBSIA - Framework de ProntidÃ£o em IA.pdf": {
-        "area": "ia",
-        "assuntos": ["maturidade", "prontidao", "avaliacao"],
-    },
-    "LIIA BBSIA - Framework Ã‰tica em IA MGI.pdf": {
-        "area": "juridico",
-        "assuntos": ["etica", "lgpd", "conformidade", "regulacao"],
-    },
-    "LIIA BBSIA - Infra-estrutura.pdf": {
-        "area": "infraestrutura",
-        "assuntos": ["servidores", "nuvem", "kubernetes", "seguranca"],
-    },
-    "2022_MarinadeAlencarAraripeCoutinho.pdf": {
-        "area": "saude",
-        "assuntos": ["saude", "pesquisa", "ia"],
-    },
-}
+CATEGORIAS_DOCUMENTOS = {}
+try:
+    import yaml
+    import os
+    cat_path = os.path.join(os.path.dirname(__file__), 'config', 'categorias.yaml')
+    if os.path.exists(cat_path):
+        with open(cat_path, 'r', encoding='utf-8') as f:
+            CATEGORIAS_DOCUMENTOS = yaml.safe_load(f) or {}
+except Exception as e:
+    LOGGER.warning(f'Failed to load config/categorias.yaml: {e}')
 
 
 def _script_dir() -> str:
