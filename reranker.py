@@ -8,20 +8,20 @@ import httpx
 import threading
 import numpy as np
 import requests
-from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from config import settings
 from sentence_transformers import CrossEncoder
 
-ENABLE_RERANKER = get_env_bool("ENABLE_RERANKER", True)
+ENABLE_RERANKER = settings.reranker.enable_reranker
 
-PRELOAD_RERANKER_ON_STARTUP = get_env_bool("PRELOAD_RERANKER_ON_STARTUP", False)
+PRELOAD_RERANKER_ON_STARTUP = settings.reranker.preload_reranker_on_startup
 
-RERANKER_MODEL = get_env_str("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+RERANKER_MODEL = settings.reranker.reranker_model
 
-RERANKER_CANDIDATES = get_env_int("RERANKER_CANDIDATES", 20, min_value=3, max_value=200)
+RERANKER_CANDIDATES = settings.reranker.reranker_candidates
 
-RERANKER_TOP_N = get_env_int("RERANKER_TOP_N", 3, min_value=1, max_value=10)
+RERANKER_TOP_N = settings.reranker.reranker_top_n
 
-RERANKER_MAX_LENGTH = get_env_int("RERANKER_MAX_LENGTH", 512, min_value=128, max_value=2048)
+RERANKER_MAX_LENGTH = settings.reranker.reranker_max_length
 
 def _get_reranker() -> CrossEncoder | None:
     if not ENABLE_RERANKER:
