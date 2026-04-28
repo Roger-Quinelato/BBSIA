@@ -17,8 +17,8 @@ from api_core import (
 router = APIRouter(prefix="", tags=["System"])
 
 
-@router.get("/")
-def root() -> dict[str, str] | RedirectResponse:
+@router.get("/", response_model=None)
+def root():
     if WEB_DIR.exists():
         return RedirectResponse(url="/web")
     return {"status": "ok", "mensagem": "API BBSIA ativa."}
