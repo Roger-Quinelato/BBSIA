@@ -247,6 +247,78 @@ make reprocess
 ## Versionamento de dados
 
 - `data/` e `uploads/` ficam fora do Git (cache/artefatos de execução).
-- `docs/` (PDFs e planilhas de referência) permanece no Git no cenário atual.
-- Critérios para migrar para Git LFS ou dataset externo estão em:
-  - [docs/VERSIONAMENTO_DADOS.md](docs/VERSIONAMENTO_DADOS.md)
+- `docs/` também fica fora do Git neste repositório. Ela contém PDFs/planilhas de referência usados para gerar a base RAG.
+- `data/faiss_index/`, `data/chunks.json`, `data/biblioteca.json` e `data/documentos_extraidos_v2.json` são artefatos gerados localmente pelo pipeline.
+- Se o projeto for compartilhado por `git clone`, o colega precisa receber os arquivos de `docs/` por outro canal ou adicionar seus próprios PDFs antes de rodar o pipeline.
+- Se o projeto for compartilhado por `.zip` da pasta inteira, incluir `docs/` e, opcionalmente, `data/` para evitar reprocessamento inicial.
+
+## Testar em outro notebook
+
+Há dois caminhos suportados:
+
+### Caminho A — clone limpo + reprocessamento
+
+Use quando o colega vai clonar o repositório e gerar a base no próprio notebook.
+
+Pré-requisitos:
+
+- Python 3.10+.
+- Ollama instalado e rodando.
+- Modelo LLM local baixado:
+
+```bash
+ollama pull qwen3.5:7b-instruct
+```
+
+Passos:
+
+```bash
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+```
+
+Antes de reprocessar, coloque os PDFs/planilhas de referência em `docs/`.
+
+Se os modelos Hugging Face ainda não estiverem no cache local, ajuste temporariamente o `.env`:
+
+```bash
+HF_LOCAL_FILES_ONLY=false
+```
+
+Depois gere a base:
+
+```bash
+python extrator_pdf_v2.py
+python chunking.py
+python embedding.py
+uvicorn api:app --host 0.0.0.0 --port 8000
+```
+
+Validação:
+
+```bash
+.venv\Scripts\python.exe -m pytest -q
+curl http://localhost:8000/status
+curl http://localhost:8000/rag/health
+```
+
+### Caminho B — pacote completo da pasta
+
+Use quando a prioridade é o colega testar rápido.
+
+Ao criar o `.zip`, inclua:
+
+- código do projeto;
+- `docs/`;
+- `data/`, se quiser que ele já tenha índice/chunks prontos;
+- `.env.example`.
+
+Não inclua:
+
+- `.venv/`;
+- `.env` com chaves locais;
+- `uploads/quarantine/` com arquivos sensíveis ou pendentes de revisão.
+
+Mesmo com `data/` incluído, o colega ainda precisa instalar dependências e ter os modelos locais compatíveis. Se mudar `EMBEDDING_MODEL` ou `EMBEDDING_DIM`, é obrigatório rodar `/reprocessar` ou executar novamente `extrator_pdf_v2.py`, `chunking.py` e `embedding.py`.
