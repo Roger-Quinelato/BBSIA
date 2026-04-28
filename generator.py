@@ -8,21 +8,21 @@ import httpx
 import threading
 import numpy as np
 import requests
-from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from config import settings
 
-OLLAMA_URL = get_env_str("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_URL = settings.ollama_generation.ollama_url
 
-DEFAULT_LLM_MODEL = get_env_str("DEFAULT_MODEL", "qwen3.5:7b-instruct")
+DEFAULT_LLM_MODEL = settings.ollama_generation.default_model
 
-ALLOWED_LLM_MODELS = set(get_env_list("ALLOWED_LLM_MODELS", [DEFAULT_LLM_MODEL]))
+ALLOWED_LLM_MODELS = set(settings.ollama_generation.allowed_llm_models)
 
-ALLOW_REMOTE_OLLAMA = get_env_bool("ALLOW_REMOTE_OLLAMA", False)
+ALLOW_REMOTE_OLLAMA = settings.ollama_generation.allow_remote_ollama
 
-OLLAMA_TIMEOUT_SEC = get_env_int("OLLAMA_TIMEOUT_SEC", 300, min_value=30, max_value=3600)
+OLLAMA_TIMEOUT_SEC = settings.ollama_generation.ollama_timeout_sec
 
-OLLAMA_NUM_PREDICT = get_env_int("OLLAMA_NUM_PREDICT", 512, min_value=32, max_value=1024)
+OLLAMA_NUM_PREDICT = settings.ollama_generation.ollama_num_predict
 
-OLLAMA_NUM_CTX = get_env_int("OLLAMA_NUM_CTX", 8192, min_value=512, max_value=131072)
+OLLAMA_NUM_CTX = settings.ollama_generation.ollama_num_ctx
 
 E5_QUERY_PREFIX = "query: "
 

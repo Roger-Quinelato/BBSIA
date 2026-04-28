@@ -1,4 +1,4 @@
-﻿"""
+"""
 API REST do Chatbot RAG BBSIA.
 
 Execucao:
@@ -107,19 +107,19 @@ ADMIN_PATHS = {"/upload", "/upload-metadata", "/upload-legacy-disabled", "/repro
 PROMPT_INJECTION_PATTERNS = [
     "ignore previous instructions",
     "ignore all instructions",
-    "ignore as instruÃƒÂ§ÃƒÂµes anteriores",
+        "ignore as instruções anteriores",
     "ignore as instrucoes anteriores",
     "system prompt",
     "developer message",
     "reveal your prompt",
     "revele seu prompt",
     "do not cite",
-    "nÃƒÂ£o cite",
+        "não cite",
     "nao cite",
     "always answer",
     "responda sempre",
     "forget the context",
-    "esqueÃƒÂ§a o contexto",
+        "esqueça o contexto",
     "esqueca o contexto",
 ]
 
@@ -198,12 +198,12 @@ async def lifespan(app: FastAPI):
         save_upload_metadata({})
 
     yield
-    # Shutdown (nenhuma aÃƒÂ§ÃƒÂ£o necessÃƒÂ¡ria por ora)
+# Shutdown (nenhuma ação necessária por ora)
 
 
 app = FastAPI(
     title="BBSIA RAG API",
-    description="API REST para o Chatbot RAG do Banco Brasileiro de SoluÃƒÂ§ÃƒÂµes de IA",
+    description="API REST para o Chatbot RAG do Banco Brasileiro de Soluções de IA",
     version=API_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -239,7 +239,7 @@ class ChatRequest(BaseModel):
     @classmethod
     def validar_pergunta(cls, value: str) -> str:
         if not value or not value.strip():
-            raise ValueError("O campo 'pergunta' Ã© obrigatÃ³rio e nÃ£o pode estar vazio.")
+            raise ValueError("O campo 'pergunta' é obrigatório e não pode estar vazio.")
         return value.strip()
 
 
@@ -253,7 +253,7 @@ class SearchRequest(BaseModel):
     @classmethod
     def validar_query(cls, value: str) -> str:
         if not value or not value.strip():
-            raise ValueError("O campo 'query' ÃƒÂ© obrigatÃƒÂ³rio e nÃƒÂ£o pode estar vazio.")
+            raise ValueError("O campo 'query' é obrigatório e não pode estar vazio.")
         return value.strip()
 
 
@@ -300,7 +300,7 @@ class UploadMetadataRequest(BaseModel):
     @classmethod
     def validar_campos_texto(cls, value: str) -> str:
         if not value or not value.strip():
-            raise ValueError("Campo obrigatÃƒÂ³rio nÃƒÂ£o pode estar vazio.")
+            raise ValueError("Campo obrigatório não pode estar vazio.")
         return value.strip()
 
     @field_validator("assuntos")
@@ -565,7 +565,7 @@ def _resolve_quarantine_source_path(quarantine_path: str, stored_filename: str) 
         if quarantine_root in resolved.parents and resolved.exists():
             return resolved
 
-    # Retorna fallback dentro da quarentena mesmo quando o arquivo nÃƒÂ£o existe
+    # Retorna fallback dentro da quarentena mesmo quando o arquivo não existe
     return (UPLOAD_QUARANTINE_DIR / stored_filename).resolve()
 
 
@@ -617,7 +617,7 @@ def _raise_http_exception(exc: Exception) -> None:
     if isinstance(exc, (requests.ConnectionError, requests.Timeout)):
         raise HTTPException(
             status_code=502,
-            detail=f"Ollama nÃƒÂ£o estÃƒÂ¡ acessÃƒÂ­vel em {OLLAMA_URL}",
+            detail=f"Ollama não está acessível em {OLLAMA_URL}",
         ) from exc
     raise HTTPException(status_code=500, detail=str(exc)) from exc
 

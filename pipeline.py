@@ -11,6 +11,7 @@ import requests
 from config import get_env_bool, get_env_int, get_env_list, get_env_str
 
 MAX_CONTEXT_CHUNKS = get_env_int("MAX_CONTEXT_CHUNKS", 6, min_value=1, max_value=10)
+ENABLE_STREAM_FAITHFULNESS = get_env_bool("ENABLE_STREAM_FAITHFULNESS", False)
 
 def _retrieval_has_answer_signal(results: list[dict]) -> bool:
     if not results:
@@ -172,8 +173,27 @@ async def answer_question_stream(
     }
 
     try:
+        streamed_tokens: list[str] = []
         async for token in query_ollama_stream(prompt=prompt, model=model):
+            streamed_tokens.append(token)
             yield {"type": "token", "token": token}
+
+        if ENABLE_STREAM_FAITHFULNESS:
+            resposta_final = "".join(streamed_tokens)
+            faithful, reason = _faithfulness_check(resposta_final, context_results)
+            event: dict[str, Any] = {
+                "type": "faithfulness",
+                "faithfulness_checked": True,
+                "faithful": bool(faithful),
+                "reason": reason,
+            }
+            if not faithful:
+                event["fallback_response"] = _extractive_grounded_answer(
+                    pergunta=pergunta,
+                    results=context_results,
+                    reason=reason,
+                )
+            yield event
     except Exception as exc:
         yield {"type": "error", "message": str(exc)}
 

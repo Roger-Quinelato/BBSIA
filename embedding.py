@@ -18,11 +18,6 @@ import numpy as np
 from config import get_env_bool, get_env_int, get_env_str
 
 try:
-    import faiss
-except ImportError as exc:  # pragma: no cover
-    raise ImportError("Instale faiss-cpu para usar embedding.py") from exc
-
-try:
     from sentence_transformers import SentenceTransformer
 except ImportError as exc:  # pragma: no cover
     raise ImportError("Instale sentence-transformers para usar embedding.py") from exc
@@ -33,8 +28,7 @@ EXPECTED_EMBEDDING_DIM = get_env_int("EMBEDDING_DIM", 1024, min_value=1, max_val
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 CHUNKS_FILE = os.path.join(DATA_DIR, "chunks.json")
-INDEX_DIR = os.path.join(DATA_DIR, "faiss_index")
-INDEX_FILE = "index.faiss"
+METADATA_DIR = os.path.join(DATA_DIR, "qdrant_index_metadata")
 METADATA_FILE = "metadata.json"
 MANIFEST_FILE = "manifest.json"
 BATCH_SIZE = 32
@@ -77,10 +71,11 @@ def _sha256_file(path: str) -> str:
     return digest.hexdigest()
 
 
-def _write_index_manifest(index_dir: str, index_path: str, metadata_path: str) -> str:
-    manifest_path = os.path.join(index_dir, MANIFEST_FILE)
+def _write_index_manifest(metadata_dir: str, metadata_path: str) -> str:
+    manifest_path = os.path.join(metadata_dir, MANIFEST_FILE)
     manifest = {
-        INDEX_FILE: _sha256_file(index_path),
+        "vector_backend": "qdrant_local",
+        "metadata_path": os.path.abspath(metadata_path),
         METADATA_FILE: _sha256_file(metadata_path),
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
     }
@@ -91,14 +86,18 @@ def _write_index_manifest(index_dir: str, index_path: str, metadata_path: str) -
 
 def run_embedding(
     chunks_file: str = CHUNKS_FILE,
-    index_dir: str = INDEX_DIR,
+    metadata_dir: str = METADATA_DIR,
+    index_dir: str | None = None,
     model_name: str = MODEL_NAME,
     batch_size: int = BATCH_SIZE,
 ) -> dict:
+    if index_dir:
+        # Alias legado: manter compatibilidade com chamadores antigos.
+        metadata_dir = index_dir
+
     base_dir = _script_dir()
     chunks_path = os.path.join(base_dir, chunks_file)
-    index_path = os.path.join(base_dir, index_dir, INDEX_FILE)
-    metadata_path = os.path.join(base_dir, index_dir, METADATA_FILE)
+    metadata_path = os.path.join(base_dir, metadata_dir, METADATA_FILE)
 
     chunks = _load_chunks(chunks_path)
     texts = [_format_passage_for_embedding(str(c["texto"])) for c in chunks]
@@ -162,9 +161,7 @@ def run_embedding(
     for j in range(0, len(points), batch_size_points):
         client.upload_points(collection_name=collection_name, points=points[j:j+batch_size_points])
 
-    os.makedirs(os.path.dirname(index_path), exist_ok=True)
-    with open(index_path, "w") as f:
-        f.write("QDRANT_MIGRATED")
+    os.makedirs(os.path.dirname(metadata_path), exist_ok=True)
 
     metadata_payload = {
         "model_name": model_name,
@@ -178,13 +175,12 @@ def run_embedding(
     with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata_payload, f, ensure_ascii=False, indent=2)
 
-    manifest_path = _write_index_manifest(os.path.dirname(index_path), index_path, metadata_path)
+    manifest_path = _write_index_manifest(os.path.dirname(metadata_path), metadata_path)
 
     LOGGER.info(
-        "event=embedding_completed total_chunks=%s dim=%s index_path=%s metadata_path=%s manifest_path=%s",
+        "event=embedding_completed total_chunks=%s dim=%s metadata_path=%s manifest_path=%s",
         len(chunks),
         dim,
-        index_path,
         metadata_path,
         manifest_path,
     )
@@ -192,9 +188,12 @@ def run_embedding(
     return {
         "total_chunks": len(chunks),
         "embedding_dim": dim,
-        "index_path": index_path,
+        # Alias de compatibilidade: manter campo historico no payload de retorno.
+        "index_path": metadata_path,
         "metadata_path": metadata_path,
         "manifest_path": manifest_path,
+        "metadata_dir": os.path.dirname(metadata_path),
+        "vector_backend": "qdrant_local",
     }
 
 

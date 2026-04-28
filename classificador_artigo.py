@@ -448,6 +448,151 @@ def _gerar_id(filename: str, ano: int | None) -> str:
     return clean
 
 
+def _pages_spans_from_payload(pages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    """Converte payload extraido em spans simplificados para heuristicas."""
+    pages_spans: list[list[dict[str, Any]]] = []
+
+    for page in pages:
+        spans: list[dict[str, Any]] = []
+        elements = page.get("elementos", [])
+        if isinstance(elements, list):
+            for element in elements:
+                kind = str(element.get("tipo", "text"))
+                text = str(element.get("texto", "")).strip()
+                if not text:
+                    continue
+                is_heading = kind == "section"
+                for line in text.splitlines():
+                    candidate = line.strip()
+                    if not candidate:
+                        continue
+                    spans.append(
+                        {
+                            "texto": candidate,
+                            "font_size": 14.0 if is_heading else 12.0,
+                            "is_bold": bool(is_heading),
+                        }
+                    )
+
+        if not spans:
+            raw_text = str(page.get("texto", "")).strip()
+            for line in raw_text.splitlines():
+                candidate = line.strip()
+                if candidate:
+                    spans.append({"texto": candidate, "font_size": 12.0, "is_bold": False})
+
+        pages_spans.append(spans)
+
+    return pages_spans
+
+
+def _extrair_instituicao_pdf(pdf_path: str | None) -> str:
+    """Tenta obter instituicao via metadados do PDF, quando caminho existe."""
+    if not pdf_path or not os.path.exists(pdf_path):
+        return ""
+
+    try:
+        doc = fitz.open(pdf_path)
+        meta = doc.metadata or {}
+        instituicao = str(meta.get("author", "") or meta.get("creator", "") or "").strip()
+        doc.close()
+        return instituicao
+    except Exception:
+        return ""
+
+
+def _extrair_ano_de_payload(pages: list[dict[str, Any]], pdf_path: str | None = None) -> int | None:
+    """Extrai ano do payload com fallback em metadados do PDF."""
+    if pdf_path and os.path.exists(pdf_path):
+        try:
+            doc = fitz.open(pdf_path)
+            meta = doc.metadata or {}
+            doc.close()
+            for key in ("creationDate", "modDate"):
+                val = meta.get(key, "")
+                match = re.search(r"(19|20)\d{2}", str(val))
+                if match:
+                    year = int(match.group())
+                    if 1990 <= year <= 2030:
+                        return year
+        except Exception:
+            pass
+
+    for page in pages[:3]:
+        text = str(page.get("texto", ""))
+        matches = re.findall(r"\b((?:19|20)\d{2})\b", text)
+        for m in matches:
+            year = int(m)
+            if 1990 <= year <= 2030:
+                return year
+
+    return None
+
+
+def _extrair_resumo_de_payload(pages: list[dict[str, Any]], pages_spans: list[list[dict[str, Any]]]) -> str:
+    """Busca resumo no payload via secoes; fallback para heuristica por spans."""
+    keywords = {"resumo", "abstract", "summary"}
+
+    for page in pages[:5]:
+        elements = page.get("elementos", [])
+        if not isinstance(elements, list):
+            continue
+
+        found_keyword = False
+        buffer: list[str] = []
+        for element in elements:
+            kind = str(element.get("tipo", "text"))
+            text = str(element.get("texto", "")).strip()
+            if not text:
+                continue
+
+            if kind == "section":
+                label = text.lower().rstrip(":").strip()
+                if label in keywords:
+                    found_keyword = True
+                    continue
+                if found_keyword:
+                    break
+
+            if found_keyword and kind in {"text", "ocr_text", "table"}:
+                buffer.append(text)
+                if len(" ".join(buffer)) > 1500:
+                    break
+
+        if buffer:
+            resumo = " ".join(buffer).strip()
+            return resumo[:2000]
+
+    return _extrair_resumo(pages_spans)
+
+
+def _extrair_secoes_de_payload(pages: list[dict[str, Any]], pages_spans: list[list[dict[str, Any]]]) -> list[str]:
+    """Extrai secoes detectadas diretamente do payload; fallback para spans."""
+    secoes: list[str] = []
+    seen: set[str] = set()
+
+    for page in pages:
+        elements = page.get("elementos", [])
+        if not isinstance(elements, list):
+            continue
+        for element in elements:
+            if str(element.get("tipo", "text")) != "section":
+                continue
+            text = str(element.get("texto", "")).strip()
+            if not text:
+                continue
+            normalized = text.lower()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            secoes.append(text)
+
+    if secoes:
+        return secoes
+
+    return _extrair_secoes(pages_spans)
+
+
 def extrair_heuristicas(pdf_path: str) -> MetadadoDocumento:
     """
     Camada 1: extração heurística sem LLM.
@@ -619,6 +764,63 @@ def classificar(pdf_path: str, usar_llm: bool = True) -> MetadadoDocumento:
     Retorna MetadadoDocumento preenchido.
     """
     metadado = extrair_heuristicas(pdf_path)
+
+    if usar_llm and (metadado.titulo or metadado.resumo):
+        metadado = enriquecer_com_llm(metadado)
+
+    return metadado
+
+
+def classificar_de_payload(
+    documento: dict[str, Any],
+    pdf_path: str | None = None,
+    usar_llm: bool = True,
+) -> MetadadoDocumento:
+    """
+    Classifica documento a partir do payload estruturado do extrator.
+
+    Evita reabrir/reprocessar PDF quando texto, elementos e metadados de pagina
+    ja estao disponiveis em memoria.
+    """
+    pages = documento.get("paginas", [])
+    if not isinstance(pages, list) or not pages:
+        if pdf_path:
+            return classificar(pdf_path, usar_llm=usar_llm)
+        raise ValueError("Payload de documento invalido: campo 'paginas' ausente ou vazio.")
+
+    pages_spans = _pages_spans_from_payload(pages)
+    titulo = _extrair_titulo(pages_spans)
+    autores = _extrair_autores(pages_spans)
+    ano = _extrair_ano_de_payload(pages, pdf_path=pdf_path)
+    resumo = _extrair_resumo_de_payload(pages, pages_spans)
+    secoes = _extrair_secoes_de_payload(pages, pages_spans)
+    tipo_doc = _inferir_tipo_documento(secoes, titulo)
+
+    documento_original = str(documento.get("documento", "")).strip().replace("\\", "/")
+    if not documento_original and pdf_path:
+        documento_original = os.path.relpath(pdf_path, BASE_DIR).replace("\\", "/")
+
+    doc_id = _gerar_id(pdf_path or documento_original or "documento", ano)
+    instituicao = _extrair_instituicao_pdf(pdf_path)
+
+    metadado = MetadadoDocumento(
+        id=doc_id,
+        titulo=titulo,
+        autores=autores,
+        ano=ano,
+        instituicao=instituicao,
+        tipo_documento=tipo_doc,
+        resumo=resumo,
+        palavras_chave=[],
+        area_tematica="geral",
+        assuntos=["geral"],
+        metodologia="outro",
+        secoes_detectadas=secoes,
+        paginas_total=len(pages),
+        documento_original=documento_original,
+        data_ingestao=datetime.now(timezone.utc).isoformat(),
+        qualidade_extracao="media",
+    )
 
     if usar_llm and (metadado.titulo or metadado.resumo):
         metadado = enriquecer_com_llm(metadado)

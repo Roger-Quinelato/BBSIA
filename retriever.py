@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, hashlib, ipaddress, json, math, os, re
+import argparse, ipaddress, json, math, os, re
 from urllib.parse import urlparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -9,6 +9,7 @@ import threading
 import numpy as np
 import requests
 from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from query_planning import plan_query
 from vector_store import dense_ranked_candidates, get_local_qdrant_client, vector_store_health
 
 """
@@ -22,11 +23,6 @@ Arquitetura:
 """
 
 try:
-    import faiss
-except ImportError as exc:  # pragma: no cover
-    raise ImportError("Instale faiss-cpu para usar rag_engine.py") from exc
-
-try:
     from sentence_transformers import CrossEncoder, SentenceTransformer
 except ImportError as exc:  # pragma: no cover
     raise ImportError("Instale sentence-transformers para usar rag_engine.py") from exc
@@ -37,13 +33,10 @@ EXPECTED_EMBEDDING_DIM = get_env_int("EMBEDDING_DIM", 1024, min_value=1, max_val
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
-INDEX_DIR = os.path.join(DATA_DIR, "faiss_index")
-
-INDEX_FILE = "index.faiss"
+METADATA_DIR = os.path.join(DATA_DIR, "qdrant_index_metadata")
+LEGACY_METADATA_DIR = os.path.join(DATA_DIR, "faiss_index")
 
 METADATA_FILE = "metadata.json"
-
-MANIFEST_FILE = "manifest.json"
 
 DEFAULT_TOP_K = get_env_int("TOP_K", 5, min_value=1, max_value=20)
 
@@ -61,6 +54,7 @@ RRF_K = get_env_int("RRF_K", 60, min_value=1, max_value=200)
 
 PRELOAD_RAG_ON_STARTUP = get_env_bool("PRELOAD_RAG_ON_STARTUP", True)
 PRELOAD_RERANKER_ON_STARTUP = get_env_bool("PRELOAD_RERANKER_ON_STARTUP", False)
+ENABLE_QUERY_PLANNING = get_env_bool("ENABLE_QUERY_PLANNING", False)
 
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
 E5_QUERY_PREFIX = "query: "
@@ -115,10 +109,7 @@ class IndexStore:
         from sentence_transformers import SentenceTransformer
         
         base_dir = _script_dir()
-        metadata_path = os.path.join(base_dir, INDEX_DIR, METADATA_FILE)
-
-        if not os.path.exists(metadata_path):
-            raise FileNotFoundError(f"Metadata nao encontrada em: {metadata_path}")
+        metadata_path = _resolve_metadata_path(base_dir)
 
         qclient = get_local_qdrant_client(DATA_DIR)
 
@@ -150,6 +141,7 @@ class IndexStore:
             "model": model,
             "embeddings": None,
             "embedding_model": embedding_model,
+            "metadata_path": metadata_path,
             "token_counts": token_counts,
             "doc_lengths": doc_lengths,
             "doc_freq": doc_freq,
@@ -163,12 +155,26 @@ index_store = IndexStore()
 def _script_dir() -> str:
     return os.path.dirname(os.path.abspath(__file__))
 
+
+def _resolve_metadata_path(base_dir: str) -> str:
+    """Usa metadata oficial nova e aceita fallback legado temporario."""
+    preferred = os.path.join(base_dir, METADATA_DIR, METADATA_FILE)
+    legacy = os.path.join(base_dir, LEGACY_METADATA_DIR, METADATA_FILE)
+    if os.path.exists(preferred):
+        return preferred
+    if os.path.exists(legacy):
+        return legacy
+    raise FileNotFoundError(f"Metadata nao encontrada em: {preferred} nem em {legacy}")
+
 def _as_list(value: str | Iterable[str] | None) -> list[str]:
     if value is None:
         return []
     if isinstance(value, str):
         return [value]
     return [v for v in value if isinstance(v, str)]
+
+def _has_filter_value(value: str | Iterable[str] | None) -> bool:
+    return any(v.strip() for v in _as_list(value))
 
 def _norm(value: str) -> str:
     return value.strip().lower()
@@ -179,35 +185,6 @@ def _tokenize(text: str) -> list[str]:
 def _format_query_for_embedding(query: str) -> str:
     """Aplica o prefixo recomendado para modelos E5 em consultas."""
     return f"{E5_QUERY_PREFIX}{(query or '').strip()}"
-
-def _sha256_file(path: str) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as f:
-        for block in iter(lambda: f.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-def _verify_index_manifest(index_path: str, metadata_path: str, manifest_path: str) -> None:
-    if not os.path.exists(manifest_path):
-        raise FileNotFoundError(f"Manifest de integridade nao encontrado em: {manifest_path}")
-
-    with open(manifest_path, "r", encoding="utf-8") as f:
-        manifest = json.load(f)
-
-    if not isinstance(manifest, dict):
-        raise ValueError("Manifest de integridade invalido.")
-
-    expected = {
-        INDEX_FILE: manifest.get(INDEX_FILE),
-        METADATA_FILE: manifest.get(METADATA_FILE),
-    }
-    actual = {
-        INDEX_FILE: _sha256_file(index_path),
-        METADATA_FILE: _sha256_file(metadata_path),
-    }
-    mismatches = [name for name, digest in expected.items() if not digest or digest != actual[name]]
-    if mismatches:
-        raise ValueError(f"Falha de integridade no indice vetorial (Qdrant/metadata): {', '.join(mismatches)}")
 
 def _build_sparse_index(chunks: list[dict]) -> tuple[list[Counter], list[int], dict[str, int], float]:
     token_counts: list[Counter] = []
@@ -280,6 +257,8 @@ def cache_health(load_if_empty: bool = False) -> dict:
         "embedding_model": data.get("embedding_model") or EMBEDDING_MODEL_FALLBACK,
         "reranker_model": RERANKER_MODEL if ENABLE_RERANKER else None,
         "total_chunks": len(chunks),
+        "dense_vectors": embedding_count,
+        # Alias de compatibilidade (deprecated): manter enquanto clientes migram.
         "faiss_vectors": embedding_count,
         "qdrant_vectors": embedding_count,
         "vector_store": vector_store_health(qclient),
@@ -459,6 +438,13 @@ def search(
     query = (query or "").strip()
     if not query:
         return []
+
+    if ENABLE_QUERY_PLANNING:
+        plan = plan_query(query)
+        if not _has_filter_value(filtro_area) and plan.filtro_area:
+            filtro_area = plan.filtro_area
+        if not _has_filter_value(filtro_assunto) and plan.filtro_assunto:
+            filtro_assunto = plan.filtro_assunto
 
     data = _load_resources()
     chunks = data["chunks"]

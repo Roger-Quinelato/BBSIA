@@ -213,3 +213,33 @@ class TestFallbackLLM:
         assert resultado.tipo_documento == "artigo_cientifico"
         assert resultado.assuntos == ["etica", "governanca", "lgpd"]
         assert resultado.metodologia == "estudo de caso"
+
+
+def test_classificar_de_payload_aproveita_texto_extraido_sem_pdf(monkeypatch):
+    documento = {
+        "documento": "uploads/doc_teste.pdf",
+        "paginas": [
+            {
+                "pagina": 1,
+                "texto": "Framework de Etica em IA\nResumo\nEste documento descreve boas praticas em 2024.",
+                "elementos": [
+                    {"tipo": "section", "texto": "Framework de Etica em IA", "secao": None},
+                    {"tipo": "section", "texto": "Resumo", "secao": "Resumo"},
+                    {
+                        "tipo": "text",
+                        "texto": "Este documento descreve boas praticas em IA no setor publico.",
+                        "secao": "Resumo",
+                    },
+                ],
+                "ocr_usado": False,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(clf, "enriquecer_com_llm", lambda m: m)
+    resultado = clf.classificar_de_payload(documento=documento, pdf_path=None, usar_llm=False)
+
+    assert resultado.documento_original == "uploads/doc_teste.pdf"
+    assert resultado.paginas_total == 1
+    assert "Framework de Etica em IA" in resultado.titulo
+    assert resultado.resumo.startswith("Este documento descreve")

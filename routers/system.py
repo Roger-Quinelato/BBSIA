@@ -1,4 +1,4 @@
-﻿from typing import Any
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
