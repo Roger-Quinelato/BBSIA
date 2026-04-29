@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 # Garante que o diretorio raiz do projeto esteja no path.
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +23,9 @@ sys.path.insert(0, PROJECT_DIR)
 
 from rag_engine import calibrate_dense_threshold  # noqa: E402
 
+DEFAULT_OUTPUT_PATH = Path(PROJECT_DIR) / "benchmarks" / "results" / "threshold_calibration_latest.json"
+LEGACY_OUTPUT_PATH = Path(SCRIPT_DIR) / "resultados_calibracao.json"
+CURRENT_THRESHOLD_PERCENT = int(os.getenv("MIN_DENSE_SCORE_PERCENT", "18"))
 
 QUERIES_DE_TESTE = [
     {"query": "O que e o BBSIA?", "area_esperada": "ia"},
@@ -41,7 +46,12 @@ QUERIES_DE_TESTE = [
 ]
 
 
-def run_calibration() -> None:
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def run_calibration(output_path: str | os.PathLike[str] = DEFAULT_OUTPUT_PATH) -> dict:
     print("=" * 70)
     print("  CALIBRACAO DE THRESHOLD - MIN_DENSE_SCORE_FOR_ANSWER")
     print("=" * 70)
@@ -50,6 +60,33 @@ def run_calibration() -> None:
     payload = calibrate_dense_threshold(QUERIES_DE_TESTE, top_k=5)
     estatisticas = payload["estatisticas"]
     qualidade = payload["qualidade"]
+    dense_informativo = bool(
+        estatisticas.get("in_scope_count", 0)
+        and (
+            float(estatisticas.get("dense_max", 0.0)) > 0.0
+            or float(estatisticas.get("out_scope_dense_max", 0.0)) > 0.0
+        )
+    )
+    recomendacao_status = "acionavel" if dense_informativo else "nao_acionavel_dense_zero"
+    decisao = (
+        "avaliar ajuste manual com base no threshold_sugerido_percent"
+        if dense_informativo
+        else "manter threshold atual; amostra nao separa scores dense"
+    )
+    payload["calibracao"] = {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "script": "scripts/calibrar_threshold.py",
+        "query_count": len(QUERIES_DE_TESTE),
+        "top_k": 5,
+        "threshold_atual_percent": CURRENT_THRESHOLD_PERCENT,
+        "threshold_adotado_percent": CURRENT_THRESHOLD_PERCENT,
+        "recomendacao_status": recomendacao_status,
+        "decisao": decisao,
+        "observacao": (
+            "Este script registra evidencia e sugestao. "
+            "A alteracao de MIN_DENSE_SCORE_PERCENT deve ser decisao documentada, nao automatica."
+        ),
+    }
 
     for i, item in enumerate(payload["resultados"], start=1):
         if item.get("erro"):
@@ -97,12 +134,16 @@ def run_calibration() -> None:
     else:
         print("  Nenhum score dense coletado.")
 
-    output_path = os.path.join(SCRIPT_DIR, "resultados_calibracao.json")
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+    output_path = Path(output_path)
+    _write_json(output_path, payload)
+    if output_path.resolve() != LEGACY_OUTPUT_PATH.resolve():
+        _write_json(LEGACY_OUTPUT_PATH, payload)
 
     print(f"\n  Resultados salvos em: {output_path}")
+    if output_path.resolve() != LEGACY_OUTPUT_PATH.resolve():
+        print(f"  Copia de compatibilidade salva em: {LEGACY_OUTPUT_PATH}")
     print(f"{'=' * 70}\n")
+    return payload
 
 
 if __name__ == "__main__":

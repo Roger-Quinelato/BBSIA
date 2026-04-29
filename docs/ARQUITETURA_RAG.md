@@ -92,6 +92,13 @@ Compatibilidade historica (temporaria):
   - `RRF_K`
   - `MIN_DENSE_SCORE_PERCENT`
 
+Nota de calibracao: a evidencia mais recente esta registrada em
+`docs/AVALIACAO_RAG.md` e em
+`benchmarks/results/threshold_calibration_latest.json`. Na execucao de
+2026-04-29, os scores dense ficaram zerados para todas as queries de
+calibracao; por isso, a sugestao bruta de reduzir o threshold para `1` foi
+tratada como nao acionavel, e o valor `MIN_DENSE_SCORE_PERCENT=18` foi mantido.
+
 - Reranker:
   - `ENABLE_RERANKER`
   - `RERANKER_MODEL`

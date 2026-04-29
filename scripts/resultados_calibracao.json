@@ -1,0 +1,518 @@
+{
+  "estatisticas": {
+    "total_queries": 15,
+    "queries_com_resultado": 15,
+    "in_scope_count": 14,
+    "out_scope_count": 1,
+    "dense_min": 0.0,
+    "dense_p10": 0.0,
+    "dense_p25": 0.0,
+    "dense_mediana": 0.0,
+    "dense_media": 0.0,
+    "dense_max": 0.0,
+    "out_scope_dense_max": 0.0,
+    "threshold_sugerido_percent": 1,
+    "threshold_sugerido_float": 0.01
+  },
+  "qualidade": {
+    "total": 15,
+    "passed": 8,
+    "failed": 7,
+    "pass_rate": 0.5333,
+    "cases": [
+      {
+        "query": "O que e o BBSIA?",
+        "area_esperada": "ia",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 5.559549811137322,
+        "score_final_top1": 6.044142723083496,
+        "area_ok": true,
+        "documento_ok": true
+      },
+      {
+        "query": "Qual e o objetivo do MVP do Banco Brasileiro de Solucoes de IA?",
+        "area_esperada": "ia",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "LIIA BBSIA - Infra-estrutura.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 18.229142000416747,
+        "score_final_top1": 8.149078369140625,
+        "area_ok": true,
+        "documento_ok": true
+      },
+      {
+        "query": "Como funciona o pipeline RAG do chatbot?",
+        "area_esperada": "ia",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 13.001178915320025,
+        "score_final_top1": 2.8940508365631104,
+        "area_ok": true,
+        "documento_ok": true
+      },
+      {
+        "query": "Quais modelos de linguagem sao usados no projeto?",
+        "area_esperada": "ia",
+        "documentos_esperados": [],
+        "passed": false,
+        "total_resultados": 5,
+        "area_retornada": "saude",
+        "documentos_retornados": [
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 9.37753469668218,
+        "score_final_top1": 2.02412486076355,
+        "area_ok": false,
+        "documento_ok": true
+      },
+      {
+        "query": "Quais sao os requisitos de infraestrutura do projeto?",
+        "area_esperada": "infraestrutura",
+        "documentos_esperados": [],
+        "passed": false,
+        "total_resultados": 5,
+        "area_retornada": "saude",
+        "documentos_retornados": [
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 7.831820135810403,
+        "score_final_top1": 5.696470260620117,
+        "area_ok": false,
+        "documento_ok": true
+      },
+      {
+        "query": "O projeto utiliza Kubernetes ou containers?",
+        "area_esperada": "infraestrutura",
+        "documentos_esperados": [],
+        "passed": false,
+        "total_resultados": 5,
+        "area_retornada": "saude",
+        "documentos_retornados": [
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "LIIA BBSIA - Infra-estrutura.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 6.834901062265658,
+        "score_final_top1": -3.0738673210144043,
+        "area_ok": false,
+        "documento_ok": true
+      },
+      {
+        "query": "Como o framework de etica em IA aborda a LGPD?",
+        "area_esperada": "juridico",
+        "documentos_esperados": [],
+        "passed": false,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "LIIA - InovaLabs 2026 Dinâmica.pdf",
+          "LIIA BBSIA - Infra-estrutura.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 11.60855948639855,
+        "score_final_top1": 5.144285202026367,
+        "area_ok": false,
+        "documento_ok": true
+      },
+      {
+        "query": "Quais sao os principios eticos de IA do projeto?",
+        "area_esperada": "juridico",
+        "documentos_esperados": [],
+        "passed": false,
+        "total_resultados": 5,
+        "area_retornada": "saude",
+        "documentos_retornados": [
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "LIIA BBSIA - Framework Ética em IA MGI.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 7.831820135810403,
+        "score_final_top1": 6.124973297119141,
+        "area_ok": false,
+        "documento_ok": true
+      },
+      {
+        "query": "O que e o InovaLabs e qual sua metodologia?",
+        "area_esperada": "tecnologia",
+        "documentos_esperados": [],
+        "passed": false,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 5.735556927425722,
+        "score_final_top1": -0.5119451880455017,
+        "area_ok": false,
+        "documento_ok": true
+      },
+      {
+        "query": "Como funcionam as oficinas de inovacao do LIIA?",
+        "area_esperada": "tecnologia",
+        "documentos_esperados": [],
+        "passed": false,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "LIIA BBSIA - Infra-estrutura.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 7.804112487351001,
+        "score_final_top1": 3.1456708908081055,
+        "area_ok": false,
+        "documento_ok": true
+      },
+      {
+        "query": "Qual a relacao entre IA e saude no projeto?",
+        "area_esperada": "saude",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "saude",
+        "documentos_retornados": [
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "LIIA - InovaLabs 2026 Dinâmica.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 5.950979251961987,
+        "score_final_top1": 5.146313667297363,
+        "area_ok": true,
+        "documento_ok": true
+      },
+      {
+        "query": "O que e o Framework de Prontidao em IA?",
+        "area_esperada": "ia",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "LIIA - InovaLabs 2026 Dinâmica.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "LIIA - InovaLabs 2026 Dinâmica.pdf",
+          "LIIA - InovaLabs 2026 Dinâmica.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 11.60855948639855,
+        "score_final_top1": 6.43593168258667,
+        "area_ok": true,
+        "documento_ok": true
+      },
+      {
+        "query": "Quais sao as fases do projeto BBSIA?",
+        "area_esperada": "ia",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf",
+          "Bases para Chatbot BBSIA e RAG.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 8.476888771795508,
+        "score_final_top1": 2.378056764602661,
+        "area_ok": true,
+        "documento_ok": true
+      },
+      {
+        "query": "Como e feita a avaliacao de maturidade em IA?",
+        "area_esperada": "ia",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "ia",
+        "documentos_retornados": [
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+          "LIIA BBSIA - Framework de Prontidão em IA.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 7.42459345741608,
+        "score_final_top1": 3.792105197906494,
+        "area_ok": true,
+        "documento_ok": true
+      },
+      {
+        "query": "Qual a receita de bolo de chocolate?",
+        "area_esperada": "nenhuma",
+        "documentos_esperados": [],
+        "passed": true,
+        "total_resultados": 5,
+        "area_retornada": "saude",
+        "documentos_retornados": [
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf",
+          "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+          "2022_MarinadeAlencarAraripeCoutinho.pdf"
+        ],
+        "score_dense_top1": 0.0,
+        "score_sparse_top1": 3.724077694310455,
+        "score_final_top1": -7.415310382843018,
+        "area_ok": true,
+        "documento_ok": true
+      }
+    ]
+  },
+  "resultados": [
+    {
+      "query": "O que e o BBSIA?",
+      "area_esperada": "ia",
+      "area_retornada": "ia",
+      "area_match": true,
+      "score_dense": 0.0,
+      "score_sparse": 5.5595,
+      "score_final": 6.0441,
+      "documento": "Bases para Chatbot BBSIA e RAG.pdf",
+      "pagina": 2,
+      "total_resultados": 5
+    },
+    {
+      "query": "Qual e o objetivo do MVP do Banco Brasileiro de Solucoes de IA?",
+      "area_esperada": "ia",
+      "area_retornada": "ia",
+      "area_match": true,
+      "score_dense": 0.0,
+      "score_sparse": 18.2291,
+      "score_final": 8.1491,
+      "documento": "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+      "pagina": 13,
+      "total_resultados": 5
+    },
+    {
+      "query": "Como funciona o pipeline RAG do chatbot?",
+      "area_esperada": "ia",
+      "area_retornada": "ia",
+      "area_match": true,
+      "score_dense": 0.0,
+      "score_sparse": 13.0012,
+      "score_final": 2.8941,
+      "documento": "Bases para Chatbot BBSIA e RAG.pdf",
+      "pagina": 3,
+      "total_resultados": 5
+    },
+    {
+      "query": "Quais modelos de linguagem sao usados no projeto?",
+      "area_esperada": "ia",
+      "area_retornada": "saude",
+      "area_match": false,
+      "score_dense": 0.0,
+      "score_sparse": 9.3775,
+      "score_final": 2.0241,
+      "documento": "2022_MarinadeAlencarAraripeCoutinho.pdf",
+      "pagina": 83,
+      "total_resultados": 5
+    },
+    {
+      "query": "Quais sao os requisitos de infraestrutura do projeto?",
+      "area_esperada": "infraestrutura",
+      "area_retornada": "saude",
+      "area_match": false,
+      "score_dense": 0.0,
+      "score_sparse": 7.8318,
+      "score_final": 5.6965,
+      "documento": "2022_MarinadeAlencarAraripeCoutinho.pdf",
+      "pagina": 81,
+      "total_resultados": 5
+    },
+    {
+      "query": "O projeto utiliza Kubernetes ou containers?",
+      "area_esperada": "infraestrutura",
+      "area_retornada": "saude",
+      "area_match": false,
+      "score_dense": 0.0,
+      "score_sparse": 6.8349,
+      "score_final": -3.0739,
+      "documento": "2022_MarinadeAlencarAraripeCoutinho.pdf",
+      "pagina": 86,
+      "total_resultados": 5
+    },
+    {
+      "query": "Como o framework de etica em IA aborda a LGPD?",
+      "area_esperada": "juridico",
+      "area_retornada": "ia",
+      "area_match": false,
+      "score_dense": 0.0,
+      "score_sparse": 11.6086,
+      "score_final": 5.1443,
+      "documento": "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+      "pagina": 1,
+      "total_resultados": 5
+    },
+    {
+      "query": "Quais sao os principios eticos de IA do projeto?",
+      "area_esperada": "juridico",
+      "area_retornada": "saude",
+      "area_match": false,
+      "score_dense": 0.0,
+      "score_sparse": 7.8318,
+      "score_final": 6.125,
+      "documento": "2022_MarinadeAlencarAraripeCoutinho.pdf",
+      "pagina": 81,
+      "total_resultados": 5
+    },
+    {
+      "query": "O que e o InovaLabs e qual sua metodologia?",
+      "area_esperada": "tecnologia",
+      "area_retornada": "ia",
+      "area_match": false,
+      "score_dense": 0.0,
+      "score_sparse": 5.7356,
+      "score_final": -0.5119,
+      "documento": "LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf",
+      "pagina": 15,
+      "total_resultados": 5
+    },
+    {
+      "query": "Como funcionam as oficinas de inovacao do LIIA?",
+      "area_esperada": "tecnologia",
+      "area_retornada": "ia",
+      "area_match": false,
+      "score_dense": 0.0,
+      "score_sparse": 7.8041,
+      "score_final": 3.1457,
+      "documento": "Bases para Chatbot BBSIA e RAG.pdf",
+      "pagina": 6,
+      "total_resultados": 5
+    },
+    {
+      "query": "Qual a relacao entre IA e saude no projeto?",
+      "area_esperada": "saude",
+      "area_retornada": "saude",
+      "area_match": true,
+      "score_dense": 0.0,
+      "score_sparse": 5.951,
+      "score_final": 5.1463,
+      "documento": "2022_MarinadeAlencarAraripeCoutinho.pdf",
+      "pagina": 81,
+      "total_resultados": 5
+    },
+    {
+      "query": "O que e o Framework de Prontidao em IA?",
+      "area_esperada": "ia",
+      "area_retornada": "ia",
+      "area_match": true,
+      "score_dense": 0.0,
+      "score_sparse": 11.6086,
+      "score_final": 6.4359,
+      "documento": "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+      "pagina": 1,
+      "total_resultados": 5
+    },
+    {
+      "query": "Quais sao as fases do projeto BBSIA?",
+      "area_esperada": "ia",
+      "area_retornada": "ia",
+      "area_match": true,
+      "score_dense": 0.0,
+      "score_sparse": 8.4769,
+      "score_final": 2.3781,
+      "documento": "Bases para Chatbot BBSIA e RAG.pdf",
+      "pagina": 1,
+      "total_resultados": 5
+    },
+    {
+      "query": "Como e feita a avaliacao de maturidade em IA?",
+      "area_esperada": "ia",
+      "area_retornada": "ia",
+      "area_match": true,
+      "score_dense": 0.0,
+      "score_sparse": 7.4246,
+      "score_final": 3.7921,
+      "documento": "LIIA BBSIA - Framework de Prontidão em IA.pdf",
+      "pagina": 1,
+      "total_resultados": 5
+    },
+    {
+      "query": "Qual a receita de bolo de chocolate?",
+      "area_esperada": "nenhuma",
+      "area_retornada": "saude",
+      "area_match": null,
+      "score_dense": 0.0,
+      "score_sparse": 3.7241,
+      "score_final": -7.4153,
+      "documento": "2022_MarinadeAlencarAraripeCoutinho.pdf",
+      "pagina": 57,
+      "total_resultados": 5
+    }
+  ],
+  "calibracao": {
+    "generated_at_utc": "2026-04-29T01:53:53.315623+00:00",
+    "script": "scripts/calibrar_threshold.py",
+    "query_count": 15,
+    "top_k": 5,
+    "threshold_atual_percent": 18,
+    "threshold_adotado_percent": 18,
+    "recomendacao_status": "nao_acionavel_dense_zero",
+    "decisao": "manter threshold atual; amostra nao separa scores dense",
+    "observacao": "Este script registra evidencia e sugestao. A alteracao de MIN_DENSE_SCORE_PERCENT deve ser decisao documentada, nao automatica."
+  }
+}
