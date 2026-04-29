@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BBSIA - Definicao de Requisitos do Projeto</title>
+  <style>
+    :root {
+      --ink: #17211b;
+      --muted: #5b665f;
+      --paper: #fffaf0;
+      --card: #ffffff;
+      --line: #d9cfb8;
+      --forest: #153c2f;
+      --moss: #5d7b52;
+      --clay: #b15f3b;
+      --gold: #d6a339;
+      --blue: #264f73;
+      --shadow: 0 22px 50px rgba(23, 33, 27, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.62;
+      background:
+        radial-gradient(circle at 8% 8%, rgba(214, 163, 57, 0.18), transparent 28rem),
+        radial-gradient(circle at 92% 14%, rgba(38, 79, 115, 0.14), transparent 24rem),
+        linear-gradient(135deg, #fffaf0 0%, #f5ecd8 100%);
+    }
+
+    a {
+      color: var(--blue);
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 44px;
+      border: 1px solid rgba(21, 60, 47, 0.22);
+      border-radius: 30px;
+      color: #fdf7e8;
+      background:
+        linear-gradient(140deg, rgba(21, 60, 47, 0.96), rgba(38, 79, 115, 0.88)),
+        repeating-linear-gradient(45deg, transparent 0 13px, rgba(255, 255, 255, 0.05) 13px 14px);
+      box-shadow: var(--shadow);
+    }
+
+    .hero:after {
+      content: "";
+      position: absolute;
+      right: -110px;
+      bottom: -130px;
+      width: 330px;
+      height: 330px;
+      border-radius: 50%;
+      background: rgba(214, 163, 57, 0.28);
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #f4d286;
+      font: 700 0.78rem/1.2 Verdana, Geneva, sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.12;
+    }
+
+    h1 {
+      position: relative;
+      z-index: 1;
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4.8rem);
+      letter-spacing: -0.045em;
+    }
+
+    .hero p {
+      position: relative;
+      z-index: 1;
+      max-width: 780px;
+      margin: 20px 0 0;
+      color: #f7ead0;
+      font-size: 1.13rem;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 22px 0 0;
+    }
+
+    .meta {
+      position: relative;
+      z-index: 1;
+      min-height: 92px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.09);
+      backdrop-filter: blur(8px);
+    }
+
+    .meta strong {
+      display: block;
+      color: #fff6de;
+      font: 700 0.78rem/1.2 Verdana, Geneva, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .meta span {
+      display: block;
+      margin-top: 8px;
+      color: #f8ead2;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 26px;
+      margin-top: 28px;
+    }
+
+    nav {
+      position: sticky;
+      top: 18px;
+      align-self: start;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 14px 30px rgba(23, 33, 27, 0.07);
+    }
+
+    nav h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      font-family: Verdana, Geneva, sans-serif;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    nav a {
+      display: block;
+      padding: 8px 0;
+      color: var(--forest);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(21, 60, 47, 0.18);
+      font-size: 0.96rem;
+    }
+
+    section {
+      margin-bottom: 24px;
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 12px 30px rgba(23, 33, 27, 0.065);
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      color: var(--forest);
+      font-size: clamp(1.6rem, 3vw, 2.45rem);
+      letter-spacing: -0.025em;
+    }
+
+    h3 {
+      margin: 22px 0 10px;
+      color: var(--blue);
+      font-size: 1.25rem;
+    }
+
+    .lead {
+      max-width: 900px;
+      color: var(--muted);
+      font-size: 1.06rem;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 0;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--forest);
+      background: #f1ead8;
+      border: 1px solid #ded1b8;
+      font: 700 0.78rem/1.2 Verdana, Geneva, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .phase {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: #fffdf7;
+    }
+
+    .phase strong {
+      color: var(--clay);
+      font-family: Verdana, Geneva, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card);
+    }
+
+    th, td {
+      vertical-align: top;
+      padding: 14px;
+      border-bottom: 1px solid #eadfc9;
+      text-align: left;
+    }
+
+    th {
+      color: #fff9ea;
+      background: var(--forest);
+      font: 700 0.79rem/1.25 Verdana, Geneva, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    td:first-child {
+      width: 118px;
+      color: var(--clay);
+      font-weight: 700;
+      font-family: Verdana, Geneva, sans-serif;
+    }
+
+    .callout {
+      padding: 18px;
+      border-left: 6px solid var(--gold);
+      border-radius: 16px;
+      background: #fff4cf;
+    }
+
+    .phase3 {
+      border-color: rgba(177, 95, 59, 0.36);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 248, 230, 0.92)),
+        radial-gradient(circle at 100% 0%, rgba(177, 95, 59, 0.12), transparent 20rem);
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      color: #0e2b21;
+      background: #efe6cf;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+    }
+
+    ul {
+      padding-left: 22px;
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.94rem;
+    }
+
+    @media (max-width: 900px) {
+      .layout,
+      .meta-grid,
+      .timeline {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+      }
+
+      .hero,
+      section {
+        padding: 24px;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Banco Brasileiro de Solucoes de IA</p>
+      <h1>Definicao de requisitos do projeto BBSIA</h1>
+      <p>
+        Documento executivo e tecnico que consolida os requisitos do projeto inteiro,
+        justifica cada requisito e explica a entrada da Fase 3 como etapa de benchmark,
+        modularizacao segura e evolucao controlada do runtime RAG.
+      </p>
+      <div class="meta-grid" aria-label="Resumo do documento">
+        <div class="meta"><strong>Status</strong><span>Fase 2 fechada como runtime estavel</span></div>
+        <div class="meta"><strong>Proximo marco</strong><span>Fase 3 inicia pelo benchmark baseline</span></div>
+        <div class="meta"><strong>Backend vetorial</strong><span>Qdrant local como referencia oficial</span></div>
+        <div class="meta"><strong>Threshold</strong><span><code>MIN_DENSE_SCORE_PERCENT=18</code> mantido</span></div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Indice">
+        <h2>Indice</h2>
+        <a href="#visao">1. Visao geral</a>
+        <a href="#fases">2. Fases do projeto</a>
+        <a href="#requisitos-funcionais">3. Requisitos funcionais</a>
+        <a href="#requisitos-rag">4. Requisitos RAG</a>
+        <a href="#requisitos-operacionais">5. Requisitos operacionais</a>
+        <a href="#avaliacao">6. Avaliacao e qualidade</a>
+        <a href="#fase3">7. Fase 3 explicada</a>
+        <a href="#fora-escopo">8. Escopo futuro</a>
+        <a href="#aceite">9. Criterios de aceite</a>
+      </nav>
+
+      <div>
+        <section id="visao">
+          <h2>1. Visao geral</h2>
+          <p class="lead">
+            O BBSIA e um backend RAG local para organizar, consultar e responder perguntas
+            sobre documentos do Banco Brasileiro de Solucoes de IA. O projeto prioriza
+            execucao local, rastreabilidade, resposta fundamentada em documentos e evolucao
+            incremental sem quebras de compatibilidade.
+          </p>
+          <div class="tag-row">
+            <span class="tag">RAG local</span>
+            <span class="tag">Qdrant</span>
+            <span class="tag">BM25</span>
+            <span class="tag">RRF</span>
+            <span class="tag">Ollama</span>
+            <span class="tag">Faithfulness</span>
+          </div>
+          <h3>Decisao arquitetural consolidada</h3>
+          <p>
+            A arquitetura oficial consolidada nas Fases 1 e 2 usa Qdrant local como
+            backend vetorial, BM25 local como busca esparsa, RRF para fusao de ranking,
+            reranker opcional, Ollama local para geracao e controle de faithfulness no
+            pipeline. Essa combinacao foi mantida para preservar estabilidade antes de
+            mudancas estruturais da Fase 3.
+          </p>
+        </section>
+
+        <section id="fases">
+          <h2>2. Fases do projeto</h2>
+          <div class="timeline">
+            <article class="phase">
+              <strong>Fase 1</strong>
+              <h3>MVP RAG local</h3>
+              <p>
+                Estabelece o fluxo essencial: ingestao de documentos, extracao,
+                chunking, embeddings, recuperacao e resposta com base no contexto.
+              </p>
+            </article>
+            <article class="phase">
+              <strong>Fase 2</strong>
+              <h3>Consolidacao do runtime</h3>
+              <p>
+                Fecha o runtime estavel com Qdrant local, retrieval hibrido,
+                reranker opcional, Ollama local, faithfulness e evidencia de
+                calibracao do threshold.
+              </p>
+            </article>
+            <article class="phase">
+              <strong>Fase 3</strong>
+              <h3>Benchmark e modularizacao</h3>
+              <p>
+                Comeca pelo benchmark baseline em <code>benchmarks/results/</code>
+                antes de reorganizar pacotes ou introduzir mudancas estruturais.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="requisitos-funcionais">
+          <h2>3. Requisitos funcionais do projeto</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Requisito</th>
+                <th>Justificativa</th>
+                <th>Fase</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>RF-01</td>
+                <td>Permitir ingestao de documentos PDF e extracao estruturada de texto.</td>
+                <td>Sem extracao confiavel, o RAG nao tem uma base documental auditavel para recuperar evidencias.</td>
+                <td>Fases 1 e 2</td>
+              </tr>
+              <tr>
+                <td>RF-02</td>
+                <td>Classificar documentos e enriquecer metadados de area, assunto e origem.</td>
+                <td>Metadados permitem filtros, organizacao da biblioteca e melhor rastreabilidade das respostas.</td>
+                <td>Fases 1 e 2</td>
+              </tr>
+              <tr>
+                <td>RF-03</td>
+                <td>Gerar chunks estruturados com relacao parent-child.</td>
+                <td>Chunks menores melhoram a recuperacao, enquanto o parent text preserva contexto suficiente para resposta.</td>
+                <td>Fases 1 e 2</td>
+              </tr>
+              <tr>
+                <td>RF-04</td>
+                <td>Indexar embeddings no Qdrant local.</td>
+                <td>Qdrant local evita dependencia externa para o backend vetorial e torna a execucao mais previsivel.</td>
+                <td>Fase 2</td>
+              </tr>
+              <tr>
+                <td>RF-05</td>
+                <td>Responder perguntas usando somente evidencias recuperadas dos documentos indexados.</td>
+                <td>O projeto precisa reduzir alucinacao e manter respostas vinculadas ao acervo oficial.</td>
+                <td>Fases 1 e 2</td>
+              </tr>
+              <tr>
+                <td>RF-06</td>
+                <td>Expor busca sem geracao por meio de endpoint dedicado.</td>
+                <td>Separar busca e resposta ajuda auditoria, debug e comparacao de qualidade do retrieval.</td>
+                <td>Fase 2</td>
+              </tr>
+              <tr>
+                <td>RF-07</td>
+                <td>Oferecer resposta em streaming com eventos de metadata, token e erro.</td>
+                <td>Streaming melhora a experiencia de usuario e preserva visibilidade das fontes retornadas.</td>
+                <td>Fase 2</td>
+              </tr>
+              <tr>
+                <td>RF-08</td>
+                <td>Permitir reprocessamento do pipeline completo.</td>
+                <td>Novos documentos e ajustes de processamento precisam ser materializados de forma repetivel.</td>
+                <td>Fase 2</td>
+              </tr>
+              <tr>
+                <td>RF-09</td>
+                <td>Permitir recarregar recursos RAG em memoria.</td>
+                <td>Recarregar sem reiniciar todo o servico facilita operacao local e validacao incremental.</td>
+                <td>Fase 2</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="requisitos-rag">
+          <h2>4. Requisitos tecnicos do RAG</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Requisito</th>
+                <th>Justificativa</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>RT-01</td>
+                <td>Usar Qdrant local como backend vetorial oficial.</td>
+                <td>Centraliza o contrato vetorial, remove FAISS do core runtime e melhora a clareza operacional.</td>
+                <td>Consolidado</td>
+              </tr>
+              <tr>
+                <td>RT-02</td>
+                <td>Manter BM25 local como camada sparse.</td>
+                <td>Busca lexical complementa embeddings e ajuda quando termos especificos aparecem nos documentos.</td>
+                <td>Consolidado</td>
+              </tr>
+              <tr>
+                <td>RT-03</td>
+                <td>Aplicar RRF para fusao entre ranking dense e sparse.</td>
+                <td>RRF combina sinais sem exigir calibracao fina imediata entre escalas de score diferentes.</td>
+                <td>Consolidado</td>
+              </tr>
+              <tr>
+                <td>RT-04</td>
+                <td>Manter reranker opcional por configuracao.</td>
+                <td>O reranker pode melhorar ordenacao, mas tem custo de latencia e dependencia de modelo; por isso deve ser controlavel.</td>
+                <td>Consolidado</td>
+              </tr>
+              <tr>
+                <td>RT-05</td>
+                <td>Usar Ollama local para geracao.</td>
+                <td>Preserva execucao local e reduz dependencia de provedores externos na geracao de respostas.</td>
+                <td>Consolidado</td>
+              </tr>
+              <tr>
+                <td>RT-06</td>
+                <td>Aplicar controle de faithfulness no pipeline.</td>
+                <td>Respostas precisam ser verificadas contra o contexto para evitar afirmacoes sem suporte documental.</td>
+                <td>Consolidado</td>
+              </tr>
+              <tr>
+                <td>RT-07</td>
+                <td>Manter <code>query_planning</code> desligado por padrao.</td>
+                <td>Planejamento automatico de consulta pode alterar filtros e ranking; deve entrar somente com baseline comparativo.</td>
+                <td>Guardrail</td>
+              </tr>
+              <tr>
+                <td>RT-08</td>
+                <td>Manter <code>MIN_DENSE_SCORE_PERCENT=18</code>.</td>
+                <td>A calibracao registrada retornou scores dense zerados; reduzir para 1 seria uma mudanca sem evidencia acionavel.</td>
+                <td>Decisao documentada</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="requisitos-operacionais">
+          <h2>5. Requisitos operacionais e de manutencao</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Requisito</th>
+                <th>Justificativa</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>RO-01</td>
+                <td>Executar testes com <code>.\.venv\Scripts\python.exe -m pytest -q</code>.</td>
+                <td>Garante que o ambiente usado na validacao e o mesmo ambiente local do projeto.</td>
+              </tr>
+              <tr>
+                <td>RO-02</td>
+                <td>Preservar smoke imports publicos: <code>api</code>, <code>rag_engine</code>, <code>_filter_ids</code>, <code>search</code> e <code>answer_question</code>.</td>
+                <td>Esses imports sao contrato de compatibilidade durante a transicao para a Fase 3.</td>
+              </tr>
+              <tr>
+                <td>RO-03</td>
+                <td>Manter artefatos principais em <code>data/</code> e resultados de benchmark em <code>benchmarks/results/</code>.</td>
+                <td>Separar estado operacional de evidencia de avaliacao facilita auditoria e reproducibilidade.</td>
+              </tr>
+              <tr>
+                <td>RO-04</td>
+                <td>Nao trocar componentes estruturais sem baseline salvo.</td>
+                <td>Sem baseline, nao ha como saber se uma mudanca melhora ou degrada retrieval, geracao ou latencia.</td>
+              </tr>
+              <tr>
+                <td>RO-05</td>
+                <td>Manter documentacao de arquitetura, avaliacao, benchmark e modularizacao atualizada.</td>
+                <td>A documentacao e parte da governanca tecnica: registra decisao, evidencia e criterio de proxima etapa.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="avaliacao">
+          <h2>6. Requisitos de avaliacao e qualidade</h2>
+          <div class="callout">
+            <strong>Decisao de threshold:</strong>
+            a evidencia principal esta em
+            <code>benchmarks/results/threshold_calibration_latest.json</code>.
+            O valor atual e adotado permanece <code>18</code>, com status
+            <code>nao_acionavel_dense_zero</code>.
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Requisito</th>
+                <th>Justificativa</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>RQ-01</td>
+                <td>Registrar evidencia versionavel de calibracao.</td>
+                <td>Decisoes de threshold afetam comportamento do RAG e precisam ser auditaveis.</td>
+              </tr>
+              <tr>
+                <td>RQ-02</td>
+                <td>Distinguir sugestao bruta de decisao adotada.</td>
+                <td>Uma metrica pode sugerir valor numerico sem evidenciar ganho real; a decisao precisa de interpretacao tecnica.</td>
+              </tr>
+              <tr>
+                <td>RQ-03</td>
+                <td>Criar benchmark expandido antes de mudancas da Fase 3.</td>
+                <td>O benchmark sera o comparador oficial para modularizacao, query planning, chunking e avaliadores opcionais.</td>
+              </tr>
+              <tr>
+                <td>RQ-04</td>
+                <td>Medir retrieval, geracao, grounding, out-of-scope e latencia.</td>
+                <td>Qualidade RAG nao e so teste de import; precisa recuperar contexto certo, responder fielmente e rejeitar fora de escopo.</td>
+              </tr>
+              <tr>
+                <td>RQ-05</td>
+                <td>Manter RAGAS, DeepEval e LangChain como avaliacao opcional.</td>
+                <td>Ferramentas externas podem enriquecer avaliacao, mas nao devem virar dependencia obrigatoria do runtime local.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="fase3" class="phase3">
+          <h2>7. Fase 3 explicada</h2>
+          <p class="lead">
+            A Fase 3 nao comeca implementando uma nova arquitetura. Ela comeca medindo
+            a arquitetura atual. O motivo e simples: antes de reorganizar modulos,
+            trocar estrategias de retrieval ou introduzir query planning, o projeto
+            precisa de um baseline para comparar ganhos e perdas.
+          </p>
+
+          <h3>7.1 Requisitos que abrem a Fase 3</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Requisito da Fase 3</th>
+                <th>Motivo da implementacao</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>F3-01</td>
+                <td>Criar <code>benchmarks/datasets/rag_eval_dataset_v2.jsonl</code>.</td>
+                <td>O dataset atual e pequeno; a Fase 3 precisa avaliar perguntas in-scope, out-of-scope, documento esperado, termos esperados e filtros.</td>
+              </tr>
+              <tr>
+                <td>F3-02</td>
+                <td>Expandir <code>benchmarks/rag_benchmark.py</code> para dataset v2.</td>
+                <td>O benchmark atual mede metricas leves; a Fase 3 precisa adicionar Hit@k, rejeicao fora de escopo, sinais de retrieval e latencia.</td>
+              </tr>
+              <tr>
+                <td>F3-03</td>
+                <td>Salvar baseline em <code>benchmarks/results/</code>.</td>
+                <td>O baseline vira o ponto de comparacao para qualquer mudanca futura de ranking, pipeline, modelo ou arquitetura.</td>
+              </tr>
+              <tr>
+                <td>F3-04</td>
+                <td>Gerar <code>benchmarks/results/baseline_summary.md</code>.</td>
+                <td>Um resumo humano facilita decisao Go/No-Go e evita que resultados fiquem escondidos apenas em JSON.</td>
+              </tr>
+              <tr>
+                <td>F3-05</td>
+                <td>Modularizar em pacote <code>bbsia/</code> somente depois do baseline.</td>
+                <td>Modularizacao sem benchmark pode parecer segura mesmo quando degrada comportamento; o baseline protege contra isso.</td>
+              </tr>
+              <tr>
+                <td>F3-06</td>
+                <td>Manter fachadas antigas durante a migracao.</td>
+                <td><code>api.py</code>, <code>rag_engine.py</code>, <code>retriever.search()</code> e <code>pipeline.answer_question()</code> sao contratos publicos do projeto.</td>
+              </tr>
+              <tr>
+                <td>F3-07</td>
+                <td>Avaliar query planning sem sobrescrever filtros explicitos.</td>
+                <td>Query planning pode melhorar consultas, mas tambem pode alterar a intencao do usuario; por isso precisa de teste e comparacao.</td>
+              </tr>
+              <tr>
+                <td>F3-08</td>
+                <td>Permitir avaliadores opcionais em ambiente separado.</td>
+                <td>RAGAS e DeepEval podem trazer metricas extras, mas o runtime deve continuar leve e local.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>7.2 Sequencia recomendada da Fase 3</h3>
+          <ol>
+            <li>Rodar a suite completa e smoke imports.</li>
+            <li>Criar dataset v2 com 28 perguntas representativas.</li>
+            <li>Expandir o benchmark sem alterar <code>search()</code> nem <code>answer_question()</code>.</li>
+            <li>Rodar calibracao e benchmark heuristico.</li>
+            <li>Salvar baseline e resumo em <code>benchmarks/results/</code>.</li>
+            <li>Somente entao iniciar modularizacao incremental.</li>
+          </ol>
+
+          <h3>7.3 Por que estes requisitos importam</h3>
+          <p>
+            A Fase 3 e uma etapa de crescimento com risco real de regressao. Mudancas
+            como reorganizar modulos, introduzir query planning, testar novos splitters
+            ou adicionar avaliadores podem melhorar o sistema, mas tambem podem piorar
+            recall, aumentar latencia ou quebrar compatibilidade. Por isso, o primeiro
+            requisito da Fase 3 e medir. O benchmark baseline transforma a arquitetura
+            atual em referencia objetiva.
+          </p>
+        </section>
+
+        <section id="fora-escopo">
+          <h2>8. Escopo futuro e requisitos posteriores</h2>
+          <p class="lead">
+            Alguns itens sao importantes para maturidade de produto, mas nao pertencem
+            ao fechamento da Fase 2 nem ao primeiro gate da Fase 3. Eles devem entrar
+            somente apos baseline, decisao documentada e planejamento especifico.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Classificacao</th>
+                <th>Justificativa</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Redis</td>
+                <td>Fase 3 ou posterior</td>
+                <td>Cache distribuido pode ajudar escala, mas adiciona infraestrutura que ainda nao e requisito do runtime local.</td>
+              </tr>
+              <tr>
+                <td>Docker e Helm</td>
+                <td>Fase 3 ou posterior</td>
+                <td>Empacotamento e orquestracao sao relevantes para deploy, mas devem vir depois do baseline funcional.</td>
+              </tr>
+              <tr>
+                <td>OIDC/RBAC</td>
+                <td>Fase 3 ou posterior</td>
+                <td>Controle de identidade e permissao exige desenho de seguranca e papeis antes de implementacao.</td>
+              </tr>
+              <tr>
+                <td>Auditoria em banco</td>
+                <td>Fase 3 ou posterior</td>
+                <td>Auditoria persistente e importante, mas precisa de modelo de dados e requisitos legais/operacionais claros.</td>
+              </tr>
+              <tr>
+                <td>Elasticsearch</td>
+                <td>Posterior</td>
+                <td>Pode ampliar busca textual, mas hoje BM25 local ja cumpre o papel sparse no baseline.</td>
+              </tr>
+              <tr>
+                <td>Grafo</td>
+                <td>Posterior</td>
+                <td>Busca por relacoes semanticas deve ser avaliada depois da estabilidade do benchmark RAG principal.</td>
+              </tr>
+              <tr>
+                <td>Fine-tuning</td>
+                <td>Posterior</td>
+                <td>Ajuste de modelo so deve ocorrer quando houver metricas suficientes para provar ganho real.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="aceite">
+          <h2>9. Criterios de aceite do projeto</h2>
+          <h3>Fase 2</h3>
+          <ul>
+            <li>Suite completa passando.</li>
+            <li>Smoke imports publicos funcionando.</li>
+            <li>Qdrant local, BM25 local, RRF, reranker opcional, Ollama local e faithfulness documentados.</li>
+            <li>Calibracao inicial registrada e <code>MIN_DENSE_SCORE_PERCENT=18</code> mantido.</li>
+            <li>Benchmark expandido classificado como entrada da Fase 3, nao pendencia retroativa.</li>
+          </ul>
+
+          <h3>Fase 3</h3>
+          <ul>
+            <li>Dataset v2 criado em <code>benchmarks/datasets/rag_eval_dataset_v2.jsonl</code>.</li>
+            <li>Benchmark expandido medindo retrieval, geracao, grounding, out-of-scope e latencia.</li>
+            <li>Baseline salvo em <code>benchmarks/results/</code>.</li>
+            <li>Go/No-Go documentado antes de modularizacao ou mudancas estruturais.</li>
+            <li>Compatibilidade de imports preservada durante a migracao.</li>
+          </ul>
+
+          <div class="callout">
+            <strong>Conclusao:</strong>
+            o projeto inteiro deve evoluir com uma regra simples: primeiro medir,
+            depois mudar. Essa regra protege o runtime consolidado e torna a Fase 3
+            uma etapa de crescimento controlado, nao uma reescrita no escuro.
+          </div>
+        </section>
+
+        <p class="footer">
+          Documento gerado para o projeto BBSIA a partir da documentacao consolidada das Fases 1, 2 e plano de entrada da Fase 3.
+        </p>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -49,13 +49,25 @@ def dense_ranked_candidates(
     query_filter = Filter(must=must_conditions) if must_conditions else None
 
     try:
-        results = qclient.search(
-            collection_name=COLLECTION_NAME,
-            query_vector=query_vec.tolist(),
-            query_filter=query_filter,
-            limit=top_n,
-        )
-    except Exception:
+        if hasattr(qclient, "search"):
+            results = qclient.search(
+                collection_name=COLLECTION_NAME,
+                query_vector=query_vec.tolist(),
+                query_filter=query_filter,
+                limit=top_n,
+            )
+        else:
+            response = qclient.query_points(
+                collection_name=COLLECTION_NAME,
+                query=query_vec.tolist(),
+                query_filter=query_filter,
+                limit=top_n,
+            )
+            results = response.points
+    except Exception as exc:
+        strict = os.getenv("RAG_STRICT_DENSE_ERRORS", "").strip().lower() in {"1", "true", "yes", "on", "sim", "s"}
+        if strict:
+            raise RuntimeError(f"Dense retrieval failed for Qdrant collection '{COLLECTION_NAME}': {exc}") from exc
         return [], {}
 
     ranked: list[int] = []

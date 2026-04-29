@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -14,10 +15,6 @@ try:
 except AttributeError:
     pass
 
-from pipeline import answer_question  # noqa: E402
-from retriever import search  # noqa: E402
-
-
 def _snippet(text: str, max_chars: int = 900) -> str:
     cleaned = " ".join((text or "").split())
     if len(cleaned) <= max_chars:
@@ -26,6 +23,8 @@ def _snippet(text: str, max_chars: int = 900) -> str:
 
 
 def _print_search(pergunta: str, top_k: int, filtro_area: list[str], filtro_assunto: list[str]) -> None:
+    from retriever import search
+
     results = search(
         query=pergunta,
         top_k=top_k,
@@ -55,6 +54,8 @@ def _print_search(pergunta: str, top_k: int, filtro_area: list[str], filtro_assu
 
 
 def _print_answer(pergunta: str, top_k: int, filtro_area: list[str], filtro_assunto: list[str]) -> None:
+    from pipeline import answer_question
+
     payload = answer_question(
         pergunta=pergunta,
         top_k=top_k,
@@ -88,7 +89,15 @@ def main() -> None:
     parser.add_argument("--top-k", type=int, default=3, help="Quantidade de resultados recuperados.")
     parser.add_argument("--area", default="", help="Filtro opcional de area, ex: ia, infraestrutura, juridico.")
     parser.add_argument("--assunto", default="", help="Filtro opcional de assunto, ex: lgpd, rag, kubernetes.")
+    parser.add_argument(
+        "--sem-faithfulness",
+        action="store_true",
+        help="Desliga a checagem NLI sincrona para testes locais de resposta.",
+    )
     args = parser.parse_args()
+
+    if args.sem_faithfulness:
+        os.environ["ENABLE_SYNC_FAITHFULNESS"] = "false"
 
     if args.pergunta.strip():
         _run_once(args, args.pergunta.strip())

@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, ipaddress, json, math, os, re
+import argparse, atexit, ipaddress, json, math, os, re
 from urllib.parse import urlparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -104,6 +104,17 @@ class IndexStore:
         with self._lock:
             return self._data
 
+    def close(self) -> None:
+        with self._lock:
+            data = self._data
+            self._data = None
+        qclient = data.get("qclient") if isinstance(data, dict) else None
+        if qclient is not None and hasattr(qclient, "close"):
+            try:
+                qclient.close()
+            except Exception:
+                pass
+
     def _load_from_disk(self) -> dict:
         import json
         from sentence_transformers import SentenceTransformer
@@ -151,6 +162,7 @@ class IndexStore:
         }
 
 index_store = IndexStore()
+atexit.register(index_store.close)
 
 def _script_dir() -> str:
     return os.path.dirname(os.path.abspath(__file__))

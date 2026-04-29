@@ -12,6 +12,7 @@ from config import get_env_bool, get_env_int, get_env_list, get_env_str
 
 MAX_CONTEXT_CHUNKS = get_env_int("MAX_CONTEXT_CHUNKS", 6, min_value=1, max_value=10)
 ENABLE_STREAM_FAITHFULNESS = get_env_bool("ENABLE_STREAM_FAITHFULNESS", False)
+ENABLE_SYNC_FAITHFULNESS = get_env_bool("ENABLE_SYNC_FAITHFULNESS", False)
 
 def _retrieval_has_answer_signal(results: list[dict]) -> bool:
     if not results:
@@ -37,9 +38,9 @@ def _extractive_grounded_answer(pergunta: str, results: list[dict], reason: str 
     if not highlights:
         return NO_EVIDENCE_RESPONSE
 
-    prefix = NO_EVIDENCE_RESPONSE
+    prefix = "Com base nos trechos recuperados, a resposta mais segura e:"
     if reason:
-        prefix += f" Controle de fidelidade: {reason}."
+        prefix += f"\n\nObservacao de fidelidade: {reason}."
 
     return (
         f"{prefix}\n\n"
@@ -70,17 +71,21 @@ def _extractive_fallback_answer(pergunta: str, results: list[dict], error: Excep
         )
 
     return (
-        "Nao foi possivel concluir a geracao pelo Ollama local neste momento. "
-        "Abaixo esta um resumo baseado diretamente nos trechos recuperados:\n\n"
+        "Com base nos trechos recuperados, a resposta mais segura e:\n\n"
         + "\n".join(highlights)
         + f"\n\nPergunta original: {pergunta}\n"
-        + f"Detalhe tecnico: {error}"
+        + f"Observacao tecnica: a geracao pelo LLM local falhou ({error})."
     )
 
 from retriever import search, _build_context, _format_citation_label, MIN_DENSE_SCORE_FOR_ANSWER, DEFAULT_TOP_K
 from generator import query_ollama, build_prompt, DEFAULT_LLM_MODEL, NO_EVIDENCE_RESPONSE
 from faithfulness import _faithfulness_check, _unique_sources
 from reranker import RERANKER_TOP_N
+
+def _llm_declined_with_available_context(resposta: str) -> bool:
+    normalized = re.sub(r"\s+", " ", (resposta or "").strip().lower())
+    return "não encontrei evidências suficientes" in normalized or "nao encontrei evidencias suficientes" in normalized
+
 def answer_question(
     pergunta: str,
     model: str = DEFAULT_LLM_MODEL,
@@ -118,9 +123,12 @@ def answer_question(
     prompt = build_prompt(pergunta=pergunta, context=context, history=history)
     try:
         resposta = query_ollama(prompt=prompt, model=model)
-        faithful, reason = _faithfulness_check(resposta, context_results)
-        if not faithful:
-            resposta = _extractive_grounded_answer(pergunta=pergunta, results=context_results, reason=reason)
+        if _llm_declined_with_available_context(resposta):
+            resposta = _extractive_grounded_answer(pergunta=pergunta, results=context_results)
+        if ENABLE_SYNC_FAITHFULNESS:
+            faithful, reason = _faithfulness_check(resposta, context_results)
+            if not faithful:
+                resposta = _extractive_grounded_answer(pergunta=pergunta, results=context_results, reason=reason)
     except Exception as exc:
         resposta = _extractive_fallback_answer(pergunta=pergunta, results=results, error=exc)
 

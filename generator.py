@@ -29,10 +29,14 @@ E5_QUERY_PREFIX = "query: "
 NO_EVIDENCE_RESPONSE = "Não encontrei evidências suficientes nos documentos indexados."
 
 SYSTEM_PROMPT = (
-    "Você é o assistente técnico do BBSIA. Responda EXCLUSIVAMENTE com base no contexto "
-    "fornecido. Se a resposta não estiver no contexto, responda: 'Não encontrei evidências "
-    "suficientes nos documentos indexados.' Para cada afirmação, adicione a citação no formato "
-    "(Sobrenome, Ano)."
+    "Você é o assistente técnico do BBSIA. Responda sempre em português e use somente o contexto fornecido. "
+    "Quando o contexto trouxer trechos relevantes, sintetize a resposta em formato claro e estruturado, "
+    "com 3 a 5 pontos objetivos quando isso ajudar. Se o contexto tratar de infraestrutura, modelos, RAG, "
+    "LLMs, GPUs, nuvem, segurança ou governança relacionados ao BBSIA, considere-o relevante para perguntas "
+    "sobre o chatbot mesmo que a palavra exata da pergunta não apareça. Não recomende buscar fora do sistema. "
+    "Use a frase 'Não encontrei evidências suficientes nos documentos indexados.' apenas se o contexto estiver "
+    "vazio, irrelevante ou contraditório para a pergunta. "
+    "Inclua citações no formato (Sobrenome, Ano) nas afirmações baseadas nas fontes."
 )
 
 def _is_loopback_host(hostname: str | None) -> bool:

@@ -34,7 +34,7 @@ def test_answer_question_uses_extractive_fallback_when_ollama_fails(monkeypatch)
         top_k=3,
     )
 
-    assert "Nao foi possivel concluir a geracao" in result["resposta"]
+    assert "Com base nos trechos recuperados" in result["resposta"]
     assert "LIIA BBSIA - Infra-estrutura.pdf" in result["resposta"]
     assert result["fontes"] == ["LIIA BBSIA - Infra-estrutura (p. 3)"]
     assert len(result["resultados"]) == 1
