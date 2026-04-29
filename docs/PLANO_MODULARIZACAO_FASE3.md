@@ -12,6 +12,15 @@ testavel, sem quebrar imports publicos nem mudar comportamento de producao em
 um unico passo. A migracao deve ser incremental, com fachadas temporarias para
 preservar compatibilidade.
 
+Antes da modularizacao, a Fase 3 deve registrar o baseline de qualidade do RAG
+atual conforme `docs/PLANO_BENCHMARK_RAG_FASE3.md`. Esse baseline e o comparador
+oficial para decidir se mudancas futuras em query planning, chunking,
+retrieval, reranker ou geracao melhoraram ou degradaram o sistema.
+
+Portanto, a Fase 3 comeca pelo benchmark expandido salvo em
+`benchmarks/results/`; modularizacao e qualquer troca estrutural so devem vir
+depois desse marco.
+
 ## Estrutura alvo
 
 ```text
@@ -88,12 +97,13 @@ migracao.
 
 ## Sequencia segura de migracao
 
-1. Criar pacote `bbsia/` sem mover arquivos existentes.
-2. Adicionar modulos novos com codigo extraido em fatias pequenas.
-3. Manter os arquivos atuais como fachadas temporarias.
-4. Migrar testes para cobrir tanto fachada antiga quanto modulo novo.
-5. Atualizar imports internos gradualmente.
-6. Remover wrappers apenas depois de uma janela de compatibilidade.
+1. Registrar baseline de benchmark RAG da arquitetura atual.
+2. Criar pacote `bbsia/` sem mover arquivos existentes.
+3. Adicionar modulos novos com codigo extraido em fatias pequenas.
+4. Manter os arquivos atuais como fachadas temporarias.
+5. Migrar testes para cobrir tanto fachada antiga quanto modulo novo.
+6. Atualizar imports internos gradualmente.
+7. Remover wrappers apenas depois de uma janela de compatibilidade.
 
 ## Guardrails da Fase 3
 
@@ -104,6 +114,13 @@ migracao.
   `documentos_extraidos_v2.json`) sem migracao explicita.
 - Nao sobrescrever filtros explicitos do usuario ao introduzir query planning.
 - Manter smoke imports e testes de API em toda etapa.
+- Nao trocar componente estrutural antes de salvar baseline em
+  `benchmarks/results/` e documentar a decisao de comparacao.
+- Manter LangChain, RAGAS e DeepEval como avaliacao opcional, sem dependencia
+  obrigatoria no runtime.
+- Tratar Redis, Docker, Helm, OIDC/RBAC, auditoria em banco, Elasticsearch,
+  grafo e fine-tuning como Fase 3 ou posterior, nunca como requisito de
+  fechamento da Fase 2.
 
 ## Validacao minima por etapa
 

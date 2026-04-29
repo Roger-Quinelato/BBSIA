@@ -9,7 +9,10 @@ Este documento descreve a arquitetura real consolidada das Fases 1 e 2 do BBSIA.
 - Fusao de ranking: RRF.
 - Re-ranking: opcional com cross-encoder.
 - Geracao: Ollama local.
-- Faithfulness em streaming: opcional via `ENABLE_STREAM_FAITHFULNESS`.
+- Faithfulness no pipeline sincronico; no streaming, evento opcional via
+  `ENABLE_STREAM_FAITHFULNESS`.
+- Calibracao inicial registrada, com `MIN_DENSE_SCORE_PERCENT=18` mantido por
+  decisao documentada.
 
 ## 2) Pipeline oficial de ingestao
 
@@ -118,3 +121,24 @@ tratada como nao acionavel, e o valor `MIN_DENSE_SCORE_PERCENT=18` foi mantido.
 
 - `catalogo/`, `schemas/`, `benchmarks/` e scripts associados permanecem como trilha opcional.
 - Podem conter referencias historicas de FAISS em dados de catalogo/benchmark, sem impacto no backend vetorial oficial do runtime.
+- LangChain, RAGAS e DeepEval sao ferramentas opcionais de avaliacao, nao
+  dependencias do runtime consolidado.
+- Redis, Docker, Helm, OIDC/RBAC, auditoria em banco, Elasticsearch, grafo e
+  fine-tuning ficam fora da Fase 2 consolidada; entram somente na Fase 3 ou
+  posterior, mediante baseline salvo e decisao documentada.
+
+## 9) Marco final da Fase 2 e entrada da Fase 3
+
+A Fase 2 considera o runtime consolidado quando a suite completa e os smoke
+imports passam, a calibracao inicial esta registrada e o comportamento padrao
+do retrieval permanece inalterado. O benchmark expandido nao e uma pendencia
+retroativa da Fase 2; ele e o primeiro gate da Fase 3.
+
+Antes de qualquer mudanca estrutural da Fase 3, registrar um baseline conforme
+`docs/PLANO_BENCHMARK_RAG_FASE3.md`. Esse baseline deve medir retrieval,
+geracao, grounding, out-of-scope e latencia, mantendo a arquitetura atual como
+comparador oficial.
+
+Nenhuma troca estrutural de backend, retrieval, geracao, avaliador ou
+infraestrutura deve ser feita antes de salvar esse baseline em
+`benchmarks/results/`.

@@ -3,6 +3,23 @@
 Este documento registra evidencias de qualidade do retrieval e decisoes de
 calibracao para preservar a estabilidade das Fases 1 e 2 antes da Fase 3.
 
+## Fechamento da Fase 2
+
+A Fase 2 termina com o runtime RAG estabilizado, testes verdes e calibracao
+inicial registrada. A calibracao atual nao autoriza mudanca de threshold, pois
+os scores dense ficaram zerados na amostra executada. Assim, o fechamento da
+Fase 2 nao deve tentar otimizar ranking sem uma evidencia melhor.
+
+O trabalho de benchmark expandido passa a ser o primeiro gate da Fase 3:
+
+- criar dataset v2 com perguntas in-scope e out-of-scope;
+- medir retrieval, geracao, grounding e latencia;
+- salvar baseline em `benchmarks/results/`;
+- comparar qualquer experimento futuro contra esse baseline.
+- impedir troca estrutural do RAG antes desse baseline.
+
+Plano operacional: `docs/PLANO_BENCHMARK_RAG_FASE3.md`.
+
 ## Calibracao de threshold dense
 
 - Data da calibracao: 2026-04-29
@@ -50,3 +67,16 @@ Alterar `MIN_DENSE_SCORE_PERCENT` somente quando uma nova evidencia mostrar:
 2. separacao mensuravel entre in-scope e out-of-scope;
 3. pass rate igual ou superior ao valor atual em queries representativas;
 4. decisao documentada neste arquivo ou em evidencia equivalente.
+
+## Proximo baseline
+
+A proxima avaliacao deve usar `benchmarks/datasets/rag_eval_dataset_v2.jsonl`,
+conforme `docs/PLANO_BENCHMARK_RAG_FASE3.md`. Esse novo baseline sera o ponto
+de comparacao para mudancas de Fase 3, incluindo query planning, variantes de
+chunking, LangChain/RAGAS opcional, ajustes de reranker e qualquer alteracao de
+threshold.
+
+LangChain, RAGAS e DeepEval sao avaliadores opcionais e nao passam a ser
+dependencia de runtime. Redis, Docker, Helm, OIDC/RBAC, auditoria em banco,
+Elasticsearch, grafo e fine-tuning devem ser tratados como Fase 3 ou posterior,
+nunca como pendencia retroativa da Fase 2.

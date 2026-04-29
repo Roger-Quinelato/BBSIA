@@ -6,6 +6,11 @@ Backend RAG local para o projeto Banco Brasileiro de Solucoes de IA (BBSIA).
 
 - Backend vetorial oficial: Qdrant local.
 - Core runtime: sem FAISS para busca vetorial.
+- Fase 2 encerrada como runtime estavel: Qdrant local, BM25 local, RRF,
+  reranker opcional, Ollama local e faithfulness no pipeline.
+- Calibracao inicial registrada em
+  `benchmarks/results/threshold_calibration_latest.json`, com
+  `MIN_DENSE_SCORE_PERCENT=18` mantido por decisao documentada.
 - Pipeline oficial:
   1. extracao PDF
   2. classificacao/metadados
@@ -15,7 +20,7 @@ Backend RAG local para o projeto Banco Brasileiro de Solucoes de IA (BBSIA).
   6. retrieval hibrido
   7. reranker opcional
   8. geracao Ollama
-  9. faithfulness opcional
+  9. faithfulness no pipeline
 
 ## Fluxo de ingestao
 
@@ -113,8 +118,18 @@ Use sempre o Python da venv:
 
 - `catalogo/`, `schemas/` e `benchmarks/` permanecem no repositorio como componentes opcionais.
 - `scripts/gerar_embeddings_solucoes.py` gera artefatos do catalogo em `data/solucoes_faiss_index/` (legado/opcional para catalogo, fora do core runtime).
+- O benchmark expandido em `benchmarks/` e o primeiro gate da Fase 3, nao uma
+  pendencia retroativa da Fase 2.
+- Nenhuma troca estrutural do RAG deve ocorrer antes de salvar baseline em
+  `benchmarks/results/`.
+- LangChain, RAGAS e DeepEval podem ser usados como avaliacao opcional em
+  ambiente separado, mas nao sao dependencia do runtime.
+- Redis, Docker, Helm, OIDC/RBAC, auditoria em banco, Elasticsearch, grafo e
+  fine-tuning pertencem a Fase 3 ou posterior.
 
 ## Documentacao tecnica
 
 - Arquitetura RAG consolidada: `docs/ARQUITETURA_RAG.md`.
+- Avaliacao e calibracao: `docs/AVALIACAO_RAG.md`.
+- Gate inicial da Fase 3: `docs/PLANO_BENCHMARK_RAG_FASE3.md`.
 - Documentos de plano/prompt antigos foram mantidos apenas como referencia historica e nao devem ser usados como fonte do runtime atual.
