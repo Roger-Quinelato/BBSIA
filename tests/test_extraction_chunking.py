@@ -49,6 +49,72 @@ def test_upload_metadata_overrides_default(monkeypatch):
     assert meta["assuntos"] == ["kubernetes", "seguranca"]
 
 
+def test_biblioteca_overrides_legacy_yaml(monkeypatch):
+    monkeypatch.setattr(chunking, "load_upload_metadata", lambda filepath=None: {})
+    monkeypatch.setattr(
+        chunking,
+        "CATEGORIAS_DOCUMENTOS",
+        {
+            "docs/artigo.pdf": {
+                "area": "saude",
+                "assuntos": ["saude", "pesquisa"],
+            }
+        },
+    )
+    monkeypatch.setattr(
+        chunking,
+        "_load_biblioteca",
+        lambda: {
+            "docs/artigo.pdf": {
+                "area_tematica": "juridico",
+                "assuntos": ["responsabilidade civil", "regulacao"],
+                "titulo": "Danos causados por IA",
+                "autores": ["Autora Teste"],
+                "ano": 2022,
+            }
+        },
+    )
+
+    meta = chunking.get_doc_metadata("docs/artigo.pdf")
+
+    assert meta["area"] == "juridico"
+    assert meta["assuntos"] == ["responsabilidade civil", "regulacao"]
+    assert meta["doc_titulo"] == "Danos causados por IA"
+
+
+def test_biblioteca_generica_nao_apaga_yaml_legado(monkeypatch):
+    monkeypatch.setattr(chunking, "load_upload_metadata", lambda filepath=None: {})
+    monkeypatch.setattr(
+        chunking,
+        "CATEGORIAS_DOCUMENTOS",
+        {
+            "docs/infra.pdf": {
+                "area": "infraestrutura",
+                "assuntos": ["servidores", "nuvem"],
+            }
+        },
+    )
+    monkeypatch.setattr(
+        chunking,
+        "_load_biblioteca",
+        lambda: {
+            "docs/infra.pdf": {
+                "area_tematica": "geral",
+                "assuntos": ["geral"],
+                "titulo": "Infraestrutura",
+                "autores": [],
+                "ano": 2024,
+            }
+        },
+    )
+
+    meta = chunking.get_doc_metadata("docs/infra.pdf")
+
+    assert meta["area"] == "infraestrutura"
+    assert meta["assuntos"] == ["servidores", "nuvem"]
+    assert meta["doc_titulo"] == "Infraestrutura"
+
+
 def test_extrator_pdf_vazio(tmp_path):
     """PDF válido mas sem texto deve retornar lista vazia ou páginas sem conteúdo."""
     pdf_path = tmp_path / "vazio.pdf"

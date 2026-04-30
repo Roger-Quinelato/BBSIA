@@ -214,6 +214,44 @@ class TestFallbackLLM:
         assert resultado.assuntos == ["etica", "governanca", "lgpd"]
         assert resultado.metodologia == "estudo de caso"
 
+    def test_heuristica_juridica_mantem_classificacao_sem_llm(self):
+        metadado = clf.MetadadoDocumento(
+            titulo="A protecao da vitima de danos causados por inteligencia artificial",
+            resumo=(
+                "Pesquisa sobre responsabilidade civil, regulacao e ordenamento juridico "
+                "aplicados a danos causados por inteligencia artificial."
+            ),
+            area_tematica="geral",
+            assuntos=["geral"],
+            secoes_detectadas=["Responsabilidade civil", "Projeto de Lei"],
+            qualidade_extracao="media",
+        )
+
+        resultado = clf._aplicar_classificacao_heuristica(metadado)
+
+        assert resultado.area_tematica == "juridico"
+        assert "responsabilidade civil" in resultado.assuntos
+
+    def test_llm_geral_nao_rebaixa_heuristica_especifica(self):
+        metadado = clf.MetadadoDocumento(
+            titulo="Responsabilidade civil por danos causados por IA",
+            area_tematica="juridico",
+            assuntos=["responsabilidade civil"],
+            qualidade_extracao="media",
+        )
+        fake_result = {
+            "area_tematica": "geral",
+            "tipo_documento": "artigo_cientifico",
+            "assuntos": ["geral"],
+            "palavras_chave": [],
+            "metodologia": "outro",
+        }
+        with patch.object(clf, "_query_ollama_json", return_value=fake_result):
+            resultado = clf.enriquecer_com_llm(metadado)
+
+        assert resultado.area_tematica == "juridico"
+        assert resultado.assuntos == ["responsabilidade civil"]
+
 
 def test_classificar_de_payload_aproveita_texto_extraido_sem_pdf(monkeypatch):
     documento = {

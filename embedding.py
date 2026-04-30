@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 from datetime import datetime, timezone
 
 import numpy as np
@@ -135,6 +136,15 @@ def run_embedding(
     qdrant_path = os.path.join(DATA_DIR, "qdrant_db")
     from qdrant_client import QdrantClient
     from qdrant_client.models import VectorParams, Distance, PointStruct
+
+    if os.path.exists(qdrant_path):
+        try:
+            shutil.rmtree(qdrant_path)
+        except OSError as exc:
+            raise RuntimeError(
+                f"Nao foi possivel limpar o indice Qdrant local em {qdrant_path}. "
+                "Feche processos Python que estejam usando data/qdrant_db e rode embedding.py novamente."
+            ) from exc
     
     client = QdrantClient(path=qdrant_path)
     collection_name = "bbsia_chunks"
@@ -160,6 +170,7 @@ def run_embedding(
     batch_size_points = 500
     for j in range(0, len(points), batch_size_points):
         client.upload_points(collection_name=collection_name, points=points[j:j+batch_size_points])
+    client.close()
 
     os.makedirs(os.path.dirname(metadata_path), exist_ok=True)
 

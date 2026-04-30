@@ -1,21 +1,23 @@
+# Mapeamento legado usado apenas quando a classificacao automatica
+# em data/biblioteca.json estiver ausente ou generica.
 "Bases para Chatbot BBSIA e RAG.pdf":
   area: "ia"
   assuntos: ["rag", "chatbot", "pdf", "base de conhecimento"]
-"LIIA - InovaLabs 2026 DinÃ¢mica.pdf":
+"LIIA - InovaLabs 2026 Dinâmica.pdf":
   area: "tecnologia"
   assuntos: ["inovacao", "metodologia", "oficina"]
-"LIIA BBSIA - Fase 1 MVP Banco Brasileiro de SoluÃ§Ãµes de IA v.02.pdf":
+"LIIA BBSIA - Fase 1 MVP Banco Brasileiro de Soluções de IA v.02.pdf":
   area: "ia"
   assuntos: ["mvp", "rag", "api", "chatbot"]
-"LIIA BBSIA - Framework de ProntidÃ£o em IA.pdf":
+"LIIA BBSIA - Framework de Prontidão em IA.pdf":
   area: "ia"
   assuntos: ["maturidade", "prontidao", "avaliacao"]
-"LIIA BBSIA - Framework Ã‰tica em IA MGI.pdf":
+"LIIA BBSIA - Framework Ética em IA MGI.pdf":
   area: "juridico"
   assuntos: ["etica", "lgpd", "conformidade", "regulacao"]
 "LIIA BBSIA - Infra-estrutura.pdf":
   area: "infraestrutura"
   assuntos: ["servidores", "nuvem", "kubernetes", "seguranca"]
-"2022_MarinadeAlencarAraripeCoutinho.pdf":
-  area: "saude"
-  assuntos: ["saude", "pesquisa", "ia"]
+"RAG_Bayesiano_IEEE LACCI.pdf":
+  area: "ia"
+  assuntos: ["rag", "avaliacao", "bayesiano", "ieee"]

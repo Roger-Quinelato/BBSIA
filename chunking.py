@@ -89,14 +89,32 @@ def _load_biblioteca() -> dict:
     return {}
 
 
+def _is_specific_metadata(area: str, assuntos: list[str]) -> bool:
+    area_norm = str(area or "").strip().lower()
+    assuntos_norm = [str(a or "").strip().lower() for a in assuntos]
+    if area_norm and area_norm != "geral":
+        return True
+    return any(a and a != "geral" for a in assuntos_norm)
+
+
+def _metadata_from_biblioteca_item(bib_item: dict, authorship: dict) -> dict:
+    area = str(bib_item.get("area_tematica", "geral")).strip() or "geral"
+    assuntos = bib_item.get("assuntos", [])
+    if not isinstance(assuntos, list):
+        assuntos = ["geral"]
+    assuntos = [str(a).strip() for a in assuntos if str(a).strip()] or ["geral"]
+    return {"area": area, "assuntos": assuntos, **authorship}
+
+
 def get_doc_metadata(doc_name: str) -> dict:
     """Retorna area, assuntos e metadados de autoria para um documento.
 
     Prioridade para area/assuntos:
       1. upload_metadata (vem do usuário)
-      2. CATEGORIAS_DOCUMENTOS (mapeamento hardcoded legado)
-      3. biblioteca.json (classificação automática)
-      4. Fallback genérico
+      2. biblioteca.json, se a classificação automática for específica
+      3. CATEGORIAS_DOCUMENTOS, como fallback legado/manual
+      4. biblioteca.json genérico, se não houver fonte melhor
+      5. Fallback genérico
 
     Campos de autoria (doc_titulo, doc_autores, doc_ano) vêm de
     biblioteca.json quando disponíveis.
@@ -130,21 +148,23 @@ def get_doc_metadata(doc_name: str) -> dict:
             assuntos = ["geral"]
         return {"area": area, "assuntos": assuntos, **authorship}
 
-    # 2. CATEGORIAS_DOCUMENTOS (legado)
+    # 2. biblioteca.json, when the automatic classification is specific.
+    bib_meta = None
+    if isinstance(bib_item, dict):
+        bib_meta = _metadata_from_biblioteca_item(bib_item, authorship)
+        if _is_specific_metadata(bib_meta["area"], bib_meta["assuntos"]):
+            return bib_meta
+
+    # 3. CATEGORIAS_DOCUMENTOS (legado)
     cat = CATEGORIAS_DOCUMENTOS.get(doc_name) or CATEGORIAS_DOCUMENTOS.get(normalized_name)
     if isinstance(cat, dict):
         return {**cat, **authorship}
 
-    # 3. biblioteca.json
-    if isinstance(bib_item, dict):
-        area = str(bib_item.get("area_tematica", "geral")).strip() or "geral"
-        assuntos = bib_item.get("assuntos", [])
-        if not isinstance(assuntos, list):
-            assuntos = ["geral"]
-        assuntos = [str(a).strip() for a in assuntos if str(a).strip()] or ["geral"]
-        return {"area": area, "assuntos": assuntos, **authorship}
+    # 4. biblioteca.json generic classification, only when no better source exists.
+    if bib_meta is not None:
+        return bib_meta
 
-    # 4. Fallback
+    # 5. Fallback
     return {"area": "geral", "assuntos": ["geral"], **authorship}
 
 

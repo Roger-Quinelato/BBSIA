@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import unicodedata
 from datetime import datetime, timezone
 from typing import Any
 
@@ -37,6 +38,74 @@ TIPOS_VALIDOS = {"artigo_cientifico", "relatorio_tecnico", "manual", "apresentac
 METODOLOGIAS_VALIDAS = {
     "estudo de caso", "revisao-sistematica", "pesquisa-quantitativa",
     "relatorio", "manual", "outro",
+}
+
+_AREA_KEYWORDS = {
+    "juridico": {
+        "direito",
+        "juridico",
+        "responsabilidade civil",
+        "responsabilidade",
+        "dano",
+        "danos",
+        "civil-constitucional",
+        "constitucional",
+        "legislacao",
+        "regulacao",
+        "regulatorio",
+        "lei",
+        "projeto de lei",
+        "vitima",
+        "ordenamento juridico",
+    },
+    "infraestrutura": {
+        "infraestrutura",
+        "servidor",
+        "servidores",
+        "gpu",
+        "cluster",
+        "nuvem",
+        "kubernetes",
+        "storage",
+        "deploy",
+        "disponibilidade",
+    },
+    "ia": {
+        "rag",
+        "chatbot",
+        "modelo de linguagem",
+        "llm",
+        "machine learning",
+        "aprendizado de maquina",
+        "inteligencia artificial",
+        "ia generativa",
+    },
+    "saude": {
+        "saude",
+        "sus",
+        "paciente",
+        "hospital",
+        "clinico",
+        "medico",
+        "epidemiologia",
+    },
+    "tecnologia": {
+        "tecnologia",
+        "inovacao",
+        "software",
+        "sistema",
+        "plataforma",
+        "api",
+        "automacao",
+    },
+}
+
+_AREA_DEFAULT_ASSUNTOS = {
+    "juridico": ["responsabilidade civil", "danos", "regulacao", "ia"],
+    "infraestrutura": ["servidores", "nuvem", "gpu", "seguranca"],
+    "ia": ["rag", "chatbot", "modelos", "ia"],
+    "saude": ["saude", "pesquisa", "ia"],
+    "tecnologia": ["inovacao", "sistemas", "tecnologia"],
 }
 
 # ---------------------------------------------------------------------------
@@ -622,7 +691,7 @@ def extrair_heuristicas(pdf_path: str) -> MetadadoDocumento:
     total_paginas = len(doc)
     doc.close()
 
-    return MetadadoDocumento(
+    metadado = MetadadoDocumento(
         id=doc_id,
         titulo=titulo,
         autores=autores,
@@ -640,6 +709,7 @@ def extrair_heuristicas(pdf_path: str) -> MetadadoDocumento:
         data_ingestao=datetime.now(timezone.utc).isoformat(),
         qualidade_extracao="media",
     )
+    return _aplicar_classificacao_heuristica(metadado)
 
 
 # ---------------------------------------------------------------------------
@@ -705,6 +775,52 @@ def _validar_campo(valor: str, validos: set[str], default: str) -> str:
     return normalizado if normalizado in validos else default
 
 
+def _normalizar_para_match(texto: str) -> str:
+    normalized = unicodedata.normalize("NFKD", texto or "")
+    sem_acento = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    return sem_acento.lower()
+
+
+def _aplicar_classificacao_heuristica(metadado: MetadadoDocumento) -> MetadadoDocumento:
+    """Classifica area/assuntos por palavras-chave quando o LLM nao ajudar."""
+    if metadado.area_tematica and metadado.area_tematica != "geral":
+        return metadado
+
+    texto = " ".join(
+        [
+            metadado.titulo or "",
+            metadado.resumo or "",
+            " ".join(metadado.secoes_detectadas or []),
+        ]
+    )
+    normalized = _normalizar_para_match(texto)
+    if not normalized.strip():
+        return metadado
+
+    scores: dict[str, int] = {}
+    for area, keywords in _AREA_KEYWORDS.items():
+        scores[area] = sum(1 for keyword in keywords if keyword in normalized)
+
+    best_area = max(scores, key=scores.get)
+    best_score = scores[best_area]
+    strong_juridico = any(
+        marker in normalized
+        for marker in (
+            "responsabilidade civil",
+            "civil-constitucional",
+            "ordenamento juridico",
+            "projeto de lei",
+        )
+    )
+    if best_score < 2 and not (best_area == "juridico" and strong_juridico):
+        return metadado
+
+    metadado.area_tematica = best_area
+    if not metadado.assuntos or metadado.assuntos == ["geral"]:
+        metadado.assuntos = _AREA_DEFAULT_ASSUNTOS.get(best_area, [best_area])
+    return metadado
+
+
 def enriquecer_com_llm(metadado: MetadadoDocumento) -> MetadadoDocumento:
     """
     Camada 2: enriquecimento via LLM.
@@ -722,6 +838,9 @@ def enriquecer_com_llm(metadado: MetadadoDocumento) -> MetadadoDocumento:
     area = _validar_campo(
         resultado.get("area_tematica", ""), AREAS_VALIDAS, metadado.area_tematica
     )
+    preservar_area_especifica = metadado.area_tematica != "geral" and area == "geral"
+    if preservar_area_especifica:
+        area = metadado.area_tematica
     tipo = _validar_campo(
         resultado.get("tipo_documento", ""), TIPOS_VALIDOS, metadado.tipo_documento
     )
@@ -732,7 +851,7 @@ def enriquecer_com_llm(metadado: MetadadoDocumento) -> MetadadoDocumento:
     assuntos = resultado.get("assuntos", [])
     if isinstance(assuntos, list) and assuntos:
         assuntos = [str(a).strip().lower() for a in assuntos if str(a).strip()]
-        if assuntos:
+        if assuntos and not (preservar_area_especifica and assuntos == ["geral"]):
             metadado.assuntos = assuntos[:6]
 
     palavras_chave = resultado.get("palavras_chave", [])
@@ -764,6 +883,7 @@ def classificar(pdf_path: str, usar_llm: bool = True) -> MetadadoDocumento:
     Retorna MetadadoDocumento preenchido.
     """
     metadado = extrair_heuristicas(pdf_path)
+    metadado = _aplicar_classificacao_heuristica(metadado)
 
     if usar_llm and (metadado.titulo or metadado.resumo):
         metadado = enriquecer_com_llm(metadado)
@@ -821,6 +941,7 @@ def classificar_de_payload(
         data_ingestao=datetime.now(timezone.utc).isoformat(),
         qualidade_extracao="media",
     )
+    metadado = _aplicar_classificacao_heuristica(metadado)
 
     if usar_llm and (metadado.titulo or metadado.resumo):
         metadado = enriquecer_com_llm(metadado)
