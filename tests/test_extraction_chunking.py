@@ -32,6 +32,30 @@ def test_chunk_text_with_overlap():
     assert first_words[-2:] == second_words[:2]
 
 
+def test_materialize_chunks_keeps_parent_text_out_of_chunks(monkeypatch):
+    monkeypatch.setattr(chunking, "get_doc_metadata", lambda _doc: {"area": "geral", "assuntos": ["geral"]})
+
+    parent_text = " ".join(f"palavra{i}" for i in range(80))
+    chunks, parents_map = chunking._materialize_chunks(
+        [
+            {
+                "documento": "doc.pdf",
+                "pagina": 1,
+                "section_heading": None,
+                "content_type": "text",
+                "texto": parent_text,
+                "ocr_usado": False,
+                "table_index": None,
+            }
+        ]
+    )
+
+    assert chunks
+    assert "parent_text" not in chunks[0]
+    assert chunks[0]["parent_id"] == "parent-0"
+    assert parents_map == {"parent-0": parent_text}
+
+
 def test_upload_metadata_overrides_default(monkeypatch):
     monkeypatch.setattr(
         chunking,

@@ -62,6 +62,17 @@ E5_QUERY_PREFIX = "query: "
 RERANKER_MODEL = get_env_str("RERANKER_MODEL", "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")
 RERANKER_CANDIDATES = get_env_int("RERANKER_CANDIDATES", 20, min_value=3, max_value=200)
 
+
+def _attach_parent_text(chunks: list[dict], parents_map: dict | None) -> None:
+    if not isinstance(parents_map, dict) or not parents_map:
+        return
+
+    for chunk in chunks:
+        parent_id = str(chunk.get("parent_id") or "")
+        if parent_id and "parent_text" not in chunk and parent_id in parents_map:
+            chunk["parent_text"] = str(parents_map[parent_id])
+
+
 class IndexStore:
     def __init__(self):
         self._lock = threading.RLock()
@@ -130,14 +141,18 @@ class IndexStore:
         if isinstance(metadata, dict) and "chunks" in metadata:
             chunks = metadata["chunks"]
             embedding_model = metadata.get("model_name", EMBEDDING_MODEL_FALLBACK)
+            parents_map = metadata.get("parents", {})
         elif isinstance(metadata, list):
             chunks = metadata
             embedding_model = EMBEDDING_MODEL_FALLBACK
+            parents_map = {}
         else:
             raise ValueError("Formato de metadata invalido.")
 
         if not isinstance(chunks, list) or not chunks:
             raise ValueError("Metadata nao possui chunks validos.")
+
+        _attach_parent_text(chunks, parents_map)
 
         try:
             model = SentenceTransformer(embedding_model, local_files_only=HF_LOCAL_FILES_ONLY)

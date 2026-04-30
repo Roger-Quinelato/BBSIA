@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from embedding import _load_chunks
+from embedding import _load_chunks, _load_parents_map, _split_lean_chunks_and_parents
 
 
 def test_load_chunks_raises_on_missing_file(tmp_path):
@@ -55,3 +55,25 @@ def test_load_chunks_success(tmp_path):
     result = _load_chunks(str(chunks_file))
     assert len(result) == 3
     assert result[0]["texto"] == "Trecho A sobre infraestrutura."
+
+
+def test_load_parents_map_ignores_missing_file(tmp_path):
+    assert _load_parents_map(str(tmp_path / "parents.json")) == {}
+
+
+def test_split_lean_chunks_moves_legacy_parent_text_to_map():
+    chunks = [
+        {"id": 0, "parent_id": "parent-0", "texto": "filho", "parent_text": "parent completo"},
+        {"id": 1, "parent_id": "parent-1", "texto": "outro filho"},
+    ]
+
+    lean_chunks, parents_map = _split_lean_chunks_and_parents(chunks, {"parent-1": "parent vindo do arquivo"})
+
+    assert lean_chunks == [
+        {"id": 0, "parent_id": "parent-0", "texto": "filho"},
+        {"id": 1, "parent_id": "parent-1", "texto": "outro filho"},
+    ]
+    assert parents_map == {
+        "parent-0": "parent completo",
+        "parent-1": "parent vindo do arquivo",
+    }

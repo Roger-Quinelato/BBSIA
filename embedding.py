@@ -29,6 +29,7 @@ EXPECTED_EMBEDDING_DIM = get_env_int("EMBEDDING_DIM", 1024, min_value=1, max_val
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 CHUNKS_FILE = os.path.join(DATA_DIR, "chunks.json")
+PARENTS_FILE = os.path.join(DATA_DIR, "parents.json")
 METADATA_DIR = os.path.join(DATA_DIR, "qdrant_index_metadata")
 METADATA_FILE = "metadata.json"
 MANIFEST_FILE = "manifest.json"
@@ -57,6 +58,34 @@ def _load_chunks(chunks_path: str) -> list[dict]:
         raise ValueError("Alguns chunks nao possuem o campo 'texto'.")
 
     return chunks
+
+
+def _load_parents_map(parents_path: str) -> dict[str, str]:
+    if not os.path.exists(parents_path):
+        return {}
+
+    with open(parents_path, "r", encoding="utf-8") as f:
+        parents = json.load(f)
+
+    if not isinstance(parents, dict):
+        return {}
+
+    return {str(parent_id): str(text) for parent_id, text in parents.items()}
+
+
+def _split_lean_chunks_and_parents(chunks: list[dict], parents_map: dict[str, str]) -> tuple[list[dict], dict[str, str]]:
+    resolved_parents = dict(parents_map)
+    lean_chunks: list[dict] = []
+
+    for chunk in chunks:
+        lean_chunk = dict(chunk)
+        parent_text = lean_chunk.pop("parent_text", None)
+        parent_id = str(lean_chunk.get("parent_id") or "")
+        if parent_id and parent_id not in resolved_parents and parent_text:
+            resolved_parents[parent_id] = str(parent_text)
+        lean_chunks.append(lean_chunk)
+
+    return lean_chunks, resolved_parents
 
 
 def _format_passage_for_embedding(text: str) -> str:
@@ -101,6 +130,8 @@ def run_embedding(
     metadata_path = os.path.join(base_dir, metadata_dir, METADATA_FILE)
 
     chunks = _load_chunks(chunks_path)
+    parents_path = os.path.join(base_dir, PARENTS_FILE)
+    lean_chunks, parents_map = _split_lean_chunks_and_parents(chunks, _load_parents_map(parents_path))
     texts = [_format_passage_for_embedding(str(c["texto"])) for c in chunks]
 
     LOGGER.info("event=embedding_model_loading model=%s", model_name)
@@ -158,12 +189,17 @@ def run_embedding(
     )
     
     points = []
-    for i, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+    for i, (chunk, emb) in enumerate(zip(lean_chunks, embeddings)):
+        payload = dict(chunk)
+        parent_id = str(payload.get("parent_id") or "")
+        if parent_id in parents_map:
+            payload["parent_text"] = parents_map[parent_id]
+
         points.append(
             PointStruct(
                 id=i,
                 vector=emb.tolist(),
-                payload=chunk
+                payload=payload
             )
         )
     
@@ -180,7 +216,8 @@ def run_embedding(
         "total_chunks": len(chunks),
         "embedding_dim": dim,
         "embedding_input_format": "e5_passage_prefix",
-        "chunks": chunks,
+        "chunks": lean_chunks,
+        "parents": parents_map,
     }
 
     with open(metadata_path, "w", encoding="utf-8") as f:

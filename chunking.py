@@ -26,6 +26,7 @@ PARENT_MAX_WORDS = 900
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 STRUCTURED_INPUT_FILE = os.path.join(DATA_DIR, "documentos_extraidos_v2.json")
 OUTPUT_FILE = os.path.join(DATA_DIR, "chunks.json")
+PARENTS_FILE = os.path.join(DATA_DIR, "parents.json")
 UPLOAD_METADATA_FILE = os.path.join("uploads", "metadata_uploads.json")
 BIBLIOTECA_FILE = os.path.join(DATA_DIR, "biblioteca.json")
 LOGGER = logging.getLogger(__name__)
@@ -351,14 +352,16 @@ def _child_chunks_for_parent(parent: dict[str, Any]) -> list[str]:
     return chunk_text(parent["texto"], CHILD_CHUNK_SIZE, CHILD_CHUNK_OVERLAP)
 
 
-def _materialize_chunks(parents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _materialize_chunks(parents: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, str]]:
     all_chunks: list[dict[str, Any]] = []
+    parents_map: dict[str, str] = {}
     chunk_id = 0
 
     for parent_index, parent in enumerate(parents):
         meta = get_doc_metadata(parent["documento"])
         parent_id = f"parent-{parent_index}"
         parent_text = _trim_parent_text(parent["texto"])
+        parents_map[parent_id] = parent_text
 
         for child_index, child in enumerate(_child_chunks_for_parent(parent)):
             if not child or _word_count(child) < 3:
@@ -380,14 +383,13 @@ def _materialize_chunks(parents: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "table_index": parent.get("table_index"),
                     "chunk_index": child_index,
                     "texto": child,
-                    "parent_text": parent_text,
                     "num_palavras": _word_count(child),
                     "parent_num_palavras": _word_count(parent["texto"]),
                 }
             )
             chunk_id += 1
 
-    return all_chunks
+    return all_chunks, parents_map
 
 
 def run_chunking() -> dict[str, Any]:
@@ -395,6 +397,7 @@ def run_chunking() -> dict[str, Any]:
     script_dir = _script_dir()
     structured_path = os.path.join(script_dir, STRUCTURED_INPUT_FILE)
     output_path = os.path.join(script_dir, OUTPUT_FILE)
+    parents_path = os.path.join(script_dir, PARENTS_FILE)
 
     structured_payload = _load_structured_payload(structured_path)
     if not structured_payload:
@@ -405,10 +408,13 @@ def run_chunking() -> dict[str, Any]:
     LOGGER.info("event=chunking_started source=%s", STRUCTURED_INPUT_FILE)
     parents = _structured_parent_blocks(structured_payload)
     source = STRUCTURED_INPUT_FILE
-    all_chunks = _materialize_chunks(parents)
+    all_chunks, parents_map = _materialize_chunks(parents)
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(all_chunks, f, ensure_ascii=False, indent=2)
+
+    with open(parents_path, "w", encoding="utf-8") as f:
+        json.dump(parents_map, f, ensure_ascii=False, indent=2)
 
     total_palavras = sum(c["num_palavras"] for c in all_chunks)
     docs_unicos = {c["documento"] for c in all_chunks}
@@ -435,6 +441,7 @@ def run_chunking() -> dict[str, Any]:
         "areas": sorted(areas_unicas),
         "tipos_conteudo": tipos,
         "output_file": OUTPUT_FILE,
+        "parents_file": PARENTS_FILE,
     }
 
 

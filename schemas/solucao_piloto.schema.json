@@ -24,31 +24,38 @@
     "nome": {
       "type": "string",
       "minLength": 3,
-      "maxLength": 160
+      "maxLength": 200
     },
     "descricao": {
       "type": "string",
-      "minLength": 20,
-      "maxLength": 1200
+      "minLength": 10,
+      "maxLength": 2000
     },
     "orgao": {
       "type": "string",
       "minLength": 2,
-      "maxLength": 160
+      "maxLength": 200
     },
     "area": {
       "type": "string",
-      "enum": ["ia", "saude", "infraestrutura", "juridico", "tecnologia", "geral"]
+      "enum": [
+        "ia",
+        "saude",
+        "infraestrutura",
+        "juridico",
+        "tecnologia",
+        "geral"
+      ]
     },
     "problema": {
       "type": "string",
       "minLength": 10,
-      "maxLength": 1000
+      "maxLength": 2000
     },
     "solucao": {
       "type": "string",
       "minLength": 10,
-      "maxLength": 1600
+      "maxLength": 2000
     },
     "tecnologias": {
       "type": "array",
@@ -57,12 +64,18 @@
       "items": {
         "type": "string",
         "minLength": 2,
-        "maxLength": 80
+        "maxLength": 200
       }
     },
     "status": {
       "type": "string",
-      "enum": ["ideacao", "piloto", "validacao", "producao", "suspensa"]
+      "enum": [
+        "ideacao",
+        "piloto",
+        "validacao",
+        "producao",
+        "suspensa"
+      ]
     },
     "conformidade": {
       "type": "object",
@@ -78,7 +91,11 @@
       "properties": {
         "dados_pessoais": {
           "type": "string",
-          "enum": ["nao", "sim", "a_confirmar"]
+          "enum": [
+            "nao",
+            "sim",
+            "a_confirmar"
+          ]
         },
         "base_legal_lgpd": {
           "type": "string",
@@ -87,24 +104,30 @@
         },
         "hospedagem": {
           "type": "string",
-          "enum": ["local", "nuvem-brasil", "nuvem-exterior", "hibrida", "a_confirmar"]
+          "enum": [
+            "local",
+            "nuvem-brasil",
+            "nuvem-exterior",
+            "hibrida",
+            "a_confirmar"
+          ]
         },
         "modelo": {
           "type": "string",
           "minLength": 2,
-          "maxLength": 160
+          "maxLength": 200
         },
         "licenca_modelo": {
           "type": "string",
           "minLength": 2,
-          "maxLength": 160
+          "maxLength": 200
         },
         "dependencias_open_source": {
           "type": "array",
           "items": {
             "type": "string",
             "minLength": 2,
-            "maxLength": 120
+            "maxLength": 200
           },
           "uniqueItems": true
         }

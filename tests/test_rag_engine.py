@@ -81,6 +81,18 @@ def test_dedupe_by_parent_keeps_context_diverse():
     assert retriever._dedupe_by_parent([0, 1, 2, 3], chunks, 3) == [0, 2, 3]
 
 
+def test_attach_parent_text_recomposes_metadata_chunks():
+    chunks = [
+        {"id": 0, "parent_id": "parent-0", "texto": "filho"},
+        {"id": 1, "parent_id": "parent-1", "texto": "filho com parent", "parent_text": "ja existe"},
+    ]
+
+    retriever._attach_parent_text(chunks, {"parent-0": "parent completo", "parent-1": "novo parent"})
+
+    assert chunks[0]["parent_text"] == "parent completo"
+    assert chunks[1]["parent_text"] == "ja existe"
+
+
 def test_cache_health_reports_cached_models(monkeypatch):
     fake_data = {
         "chunks": [{"id": 1}, {"id": 2}],
