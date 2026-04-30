@@ -185,7 +185,7 @@ def load_settings() -> AppSettings:
         reranker=RerankerSettings(
             enable_reranker=get_env_bool("ENABLE_RERANKER", True),
             preload_reranker_on_startup=get_env_bool("PRELOAD_RERANKER_ON_STARTUP", False),
-            reranker_model=get_env_str("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
+            reranker_model=get_env_str("RERANKER_MODEL", "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"),
             reranker_candidates=get_env_int("RERANKER_CANDIDATES", 20, min_value=3, max_value=200),
             reranker_top_n=get_env_int("RERANKER_TOP_N", 3, min_value=1, max_value=10),
             reranker_max_length=get_env_int("RERANKER_MAX_LENGTH", 512, min_value=128, max_value=2048),

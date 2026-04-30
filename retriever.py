@@ -59,7 +59,7 @@ ENABLE_QUERY_PLANNING = get_env_bool("ENABLE_QUERY_PLANNING", False)
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
 E5_QUERY_PREFIX = "query: "
 
-RERANKER_MODEL = get_env_str("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+RERANKER_MODEL = get_env_str("RERANKER_MODEL", "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1")
 RERANKER_CANDIDATES = get_env_int("RERANKER_CANDIDATES", 20, min_value=3, max_value=200)
 
 class IndexStore:
