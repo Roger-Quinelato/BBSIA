@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from vector_store import dense_ranked_candidates
+from bbsia.infrastructure.vector_store import dense_ranked_candidates
 
 
 class _FailingQdrant:

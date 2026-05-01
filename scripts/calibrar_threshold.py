@@ -21,10 +21,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, PROJECT_DIR)
 
-from rag_engine import calibrate_dense_threshold  # noqa: E402
+from bbsia.rag.retrieval.retriever import calibrate_dense_threshold  # noqa: E402
 
 DEFAULT_OUTPUT_PATH = Path(PROJECT_DIR) / "benchmarks" / "results" / "threshold_calibration_latest.json"
-LEGACY_OUTPUT_PATH = Path(SCRIPT_DIR) / "resultados_calibracao.json"
 CURRENT_THRESHOLD_PERCENT = int(os.getenv("MIN_DENSE_SCORE_PERCENT", "18"))
 
 QUERIES_DE_TESTE = [
@@ -45,10 +44,6 @@ QUERIES_DE_TESTE = [
     {"query": "Qual a receita de bolo de chocolate?", "area_esperada": "nenhuma"},
 ]
 
-
-def _write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def run_calibration(output_path: str | os.PathLike[str] = DEFAULT_OUTPUT_PATH) -> dict:
@@ -135,13 +130,10 @@ def run_calibration(output_path: str | os.PathLike[str] = DEFAULT_OUTPUT_PATH) -
         print("  Nenhum score dense coletado.")
 
     output_path = Path(output_path)
-    _write_json(output_path, payload)
-    if output_path.resolve() != LEGACY_OUTPUT_PATH.resolve():
-        _write_json(LEGACY_OUTPUT_PATH, payload)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(f"\n  Resultados salvos em: {output_path}")
-    if output_path.resolve() != LEGACY_OUTPUT_PATH.resolve():
-        print(f"  Copia de compatibilidade salva em: {LEGACY_OUTPUT_PATH}")
     print(f"{'=' * 70}\n")
     return payload
 

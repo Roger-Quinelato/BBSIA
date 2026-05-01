@@ -1,1 +1,82 @@
-[]
+[
+  {
+    "id": "problema-chamados-triagem-lenta",
+    "question": "A triagem manual dos chamados esta lenta e muitos tickets sao transferidos entre equipes. Qual solucao catalogada recomenda?",
+    "reference_answer": "Recomendar a Classificacao Automatica de Chamados de TI, com diagnostico de processo manual de leitura e roteamento, passos de extracao do historico, treino do modelo, API de predicao e integracao por webhook, citando riscos de vies historico e queda da API.",
+    "expected_solution_id": "solucao-ia-classificacao-chamados",
+    "expected_context_terms": [
+      "triagem manual",
+      "chamados",
+      "webhook",
+      "vies"
+    ],
+    "filtro_area": [
+      "tecnologia"
+    ],
+    "filtro_assunto": []
+  },
+  {
+    "id": "problema-chamados-transferencias",
+    "question": "Temos muitos chamados transferidos entre filas e reclamacoes de demora dos usuarios. Qual piloto resolve esse problema?",
+    "reference_answer": "Mapear para a Classificacao Automatica de Chamados de TI, porque os sintomas incluem transferencias entre equipes e demora na triagem; a solucao usa NLP sobre historico de chamados para sugerir a fila correta.",
+    "expected_solution_id": "solucao-ia-classificacao-chamados",
+    "expected_context_terms": [
+      "muitos chamados transferidos",
+      "tempo medio de resposta",
+      "modelo de linguagem",
+      "fila correta"
+    ],
+    "filtro_area": [
+      "tecnologia"
+    ],
+    "filtro_assunto": []
+  },
+  {
+    "id": "problema-contratos-backlog-auditoria",
+    "question": "Auditores estao com backlog crescente para ler contratos extensos e preencher metadados. Que solucao piloto se aplica?",
+    "reference_answer": "Recomendar Extracao de Metadados em Contratos, com causa raiz ligada a leitura humana de PDFs extensos e passos de OCR local, modelo Ollama, script de orquestracao e validacao contra dataset ouro.",
+    "expected_solution_id": "solucao-ia-analise-contratos",
+    "expected_context_terms": [
+      "backlog de auditoria",
+      "contratos",
+      "ocr",
+      "dataset ouro"
+    ],
+    "filtro_area": [
+      "juridico"
+    ],
+    "filtro_assunto": []
+  },
+  {
+    "id": "problema-contratos-erros-planilhas",
+    "question": "Estamos tendo erros de digitacao em planilhas de contratos e falta de padrao nos metadados cadastrados. Qual recomendacao segura existe?",
+    "reference_answer": "Usar a solucao Extracao de Metadados em Contratos, ancorada no catalogo, destacando OCR, LLM instruido para extrair entidades em JSON e risco de baixa precisao do OCR ou alucinacao em valores financeiros.",
+    "expected_solution_id": "solucao-ia-analise-contratos",
+    "expected_context_terms": [
+      "erros de digitacao",
+      "metadados",
+      "llm instruido",
+      "alucinacao"
+    ],
+    "filtro_area": [
+      "juridico"
+    ],
+    "filtro_assunto": []
+  },
+  {
+    "id": "problema-saude-fila-exames",
+    "question": "Pacientes graves estao esperando muito por exames de imagem e a triagem manual nao prioriza bem. Que solucao do catalogo ajuda?",
+    "reference_answer": "Recomendar Triagem Preditiva de Fila de Exames, com diagnostico de gargalo humano na triagem, passos de anonimizacao de historico, anotacao de pedidos, treinamento XGBoost com embeddings Spacy e integracao ao RIS.",
+    "expected_solution_id": "solucao-ia-triagem-saude",
+    "expected_context_terms": [
+      "tempo de espera longo",
+      "exames",
+      "gargalo humano",
+      "xgboost"
+    ],
+    "filtro_area": [
+      "saude"
+    ],
+    "filtro_assunto": []
+  }
+]

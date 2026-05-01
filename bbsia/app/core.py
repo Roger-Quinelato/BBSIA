@@ -29,18 +29,18 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from bbsia.core.config import get_env_bool, get_env_int, get_env_list, get_env_str
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from chunking import run_chunking
-from embedding import run_embedding
-from extrator_pdf_v2 import run_extraction
-from reprocess_worker import ReprocessWorker
-from rag_engine import (
+from bbsia.rag.ingestion.chunking import run_chunking
+from bbsia.rag.ingestion.embedding import run_embedding
+from bbsia.rag.ingestion.extrator import run_extraction
+from bbsia.rag.ingestion.worker import ReprocessWorker
+from bbsia.rag.engine import (
     answer_question,
     answer_question_stream,
     cache_health,
@@ -54,7 +54,7 @@ from rag_engine import (
     search,
     validate_ollama_model,
 )
-from classificador_artigo import carregar_biblioteca
+from bbsia.rag.ingestion.classificador import carregar_biblioteca
 
 
 API_VERSION = "1.0.0"

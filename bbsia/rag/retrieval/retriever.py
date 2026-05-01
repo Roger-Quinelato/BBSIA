@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, atexit, ipaddress, json, math, os, re
+import argparse, atexit, inspect, ipaddress, json, math, os, re
 from urllib.parse import urlparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -8,9 +8,10 @@ import httpx
 import threading
 import numpy as np
 import requests
-from config import get_env_bool, get_env_int, get_env_list, get_env_str
-from query_planning import plan_query
-from vector_store import dense_ranked_candidates, get_local_qdrant_client, vector_store_health
+
+from bbsia.core.config import get_env_bool, get_env_int, get_env_list, get_env_str
+from bbsia.rag.retrieval.query_planning import plan_query
+from bbsia.infrastructure.vector_store import dense_ranked_candidates, get_local_qdrant_client, vector_store_health, COLLECTION_NAME, COLLECTION_SOLUTIONS
 
 """
 Motor RAG para o projeto BBSIA.
@@ -31,7 +32,8 @@ EMBEDDING_MODEL_FALLBACK = get_env_str("EMBEDDING_MODEL", "intfloat/multilingual
 
 EXPECTED_EMBEDDING_DIM = get_env_int("EMBEDDING_DIM", 1024, min_value=1, max_value=8192)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DATA_DIR = os.path.join(_REPO_ROOT, "data")
 
 METADATA_DIR = os.path.join(DATA_DIR, "qdrant_index_metadata")
 LEGACY_METADATA_DIR = os.path.join(DATA_DIR, "faiss_index")
@@ -76,62 +78,68 @@ def _attach_parent_text(chunks: list[dict], parents_map: dict | None) -> None:
 class IndexStore:
     def __init__(self):
         self._lock = threading.RLock()
-        self._data = None
-        self._status = {
-            "loaded_at_utc": None,
-            "last_error": None,
-            "last_preload_at_utc": None,
-            "last_preload_error": None,
-        }
+        self._data = {}
+        self._status = {}
 
-    def get(self) -> dict:
-        with self._lock:
-            if self._data is None:
-                self._data = self._load_from_disk()
-                self._status["loaded_at_utc"] = self._data.get("loaded_at_utc")
-                self._status["last_error"] = None
-            return self._data
+    def _init_status(self, collection: str):
+        if collection not in self._status:
+            self._status[collection] = {
+                "loaded_at_utc": None,
+                "last_error": None,
+                "last_preload_at_utc": None,
+                "last_preload_error": None,
+            }
 
-    def reload(self) -> None:
-        new_data = self._load_from_disk()
+    def get(self, collection: str = COLLECTION_NAME) -> dict:
         with self._lock:
-            self._data = new_data
-            self._status["loaded_at_utc"] = new_data.get("loaded_at_utc")
-            self._status["last_error"] = None
+            self._init_status(collection)
+            if collection not in self._data:
+                self._data[collection] = self._load_from_disk(collection)
+                self._status[collection]["loaded_at_utc"] = self._data[collection].get("loaded_at_utc")
+                self._status[collection]["last_error"] = None
+            return self._data[collection]
 
-    def get_status(self, key: str):
+    def reload(self, collection: str = COLLECTION_NAME) -> None:
+        new_data = self._load_from_disk(collection)
         with self._lock:
-            return self._status.get(key)
+            self._init_status(collection)
+            self._data[collection] = new_data
+            self._status[collection]["loaded_at_utc"] = new_data.get("loaded_at_utc")
+            self._status[collection]["last_error"] = None
+
+    def get_status(self, key: str, collection: str = COLLECTION_NAME):
+        with self._lock:
+            return self._status.get(collection, {}).get(key)
             
-    def set_status(self, key: str, value):
+    def set_status(self, key: str, value, collection: str = COLLECTION_NAME):
         with self._lock:
-            self._status[key] = value
+            self._init_status(collection)
+            self._status[collection][key] = value
 
-    def has_data(self) -> bool:
+    def has_data(self, collection: str = COLLECTION_NAME) -> bool:
         with self._lock:
-            return self._data is not None
+            return collection in self._data
 
-    def get_data_if_loaded(self) -> dict | None:
+    def get_data_if_loaded(self, collection: str = COLLECTION_NAME) -> dict | None:
         with self._lock:
-            return self._data
+            return self._data.get(collection)
 
     def close(self) -> None:
         with self._lock:
-            data = self._data
-            self._data = None
-        qclient = data.get("qclient") if isinstance(data, dict) else None
-        if qclient is not None and hasattr(qclient, "close"):
-            try:
-                qclient.close()
-            except Exception:
-                pass
+            for col, data in self._data.items():
+                qclient = data.get("qclient")
+                if qclient is not None and hasattr(qclient, "close"):
+                    try:
+                        qclient.close()
+                    except Exception:
+                        pass
+            self._data.clear()
 
-    def _load_from_disk(self) -> dict:
+    def _load_from_disk(self, collection: str) -> dict:
         import json
         from sentence_transformers import SentenceTransformer
         
-        base_dir = _script_dir()
-        metadata_path = _resolve_metadata_path(base_dir)
+        metadata_path = _resolve_metadata_path(collection)
 
         qclient = get_local_qdrant_client(DATA_DIR)
 
@@ -180,18 +188,60 @@ index_store = IndexStore()
 atexit.register(index_store.close)
 
 def _script_dir() -> str:
-    return os.path.dirname(os.path.abspath(__file__))
+    return _REPO_ROOT
 
 
-def _resolve_metadata_path(base_dir: str) -> str:
+def _accepts_positional_arg(fn) -> bool:
+    try:
+        signature = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return True
+    return any(
+        parameter.kind
+        in {
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.VAR_KEYWORD,
+        }
+        for parameter in signature.parameters.values()
+    )
+
+
+def _call_with_optional_collection(fn, collection: str):
+    if _accepts_positional_arg(fn):
+        return fn(collection)
+    return fn()
+
+
+def _call_status_with_optional_collection(fn, key: str, collection: str):
+    try:
+        signature = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return fn(key, collection)
+    accepts_varargs = any(
+        parameter.kind in {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}
+        for parameter in signature.parameters.values()
+    )
+    if accepts_varargs or len(signature.parameters) >= 2:
+        return fn(key, collection)
+    return fn(key)
+
+
+def _resolve_metadata_path(collection: str) -> str:
     """Usa metadata oficial nova e aceita fallback legado temporario."""
-    preferred = os.path.join(base_dir, METADATA_DIR, METADATA_FILE)
-    legacy = os.path.join(base_dir, LEGACY_METADATA_DIR, METADATA_FILE)
+    if collection == COLLECTION_SOLUTIONS:
+        preferred = os.path.join(DATA_DIR, "solucoes_qdrant_metadata", METADATA_FILE)
+    else:
+        preferred = os.path.join(DATA_DIR, "qdrant_index_metadata", METADATA_FILE)
+        
+    legacy = os.path.join(DATA_DIR, "faiss_index", METADATA_FILE)
     if os.path.exists(preferred):
         return preferred
-    if os.path.exists(legacy):
+    if collection == COLLECTION_NAME and os.path.exists(legacy):
         return legacy
-    raise FileNotFoundError(f"Metadata nao encontrada em: {preferred} nem em {legacy}")
+    raise FileNotFoundError(f"Metadata nao encontrada para colecao {collection}")
 
 def _as_list(value: str | Iterable[str] | None) -> list[str]:
     if value is None:
@@ -230,22 +280,22 @@ def _build_sparse_index(chunks: list[dict]) -> tuple[list[Counter], list[int], d
     avgdl = float(sum(doc_lengths) / max(len(doc_lengths), 1))
     return token_counts, doc_lengths, dict(doc_freq), avgdl
 
-def _load_resources() -> dict:
-    return index_store.get()
+def _load_resources(collection: str = COLLECTION_NAME) -> dict:
+    return index_store.get(collection)
 
-def reload_resources() -> None:
-    index_store.reload()
+def reload_resources(collection: str = COLLECTION_NAME) -> None:
+    index_store.reload(collection)
 
-def preload_resources(load_reranker: bool = PRELOAD_RERANKER_ON_STARTUP) -> dict:
+def preload_resources(load_reranker: bool = PRELOAD_RERANKER_ON_STARTUP, collection: str = COLLECTION_NAME) -> dict:
     """Carrega indice, modelo de embeddings e, opcionalmente, re-ranker no cache."""
     started_at = datetime.now(timezone.utc).isoformat()
     try:
-        data = _load_resources()
+        data = _call_with_optional_collection(_load_resources, collection)
         reranker_loaded = False
         if load_reranker and ENABLE_RERANKER:
             reranker_loaded = _get_reranker() is not None
-        index_store.set_status("last_preload_at_utc", started_at)
-        index_store.set_status("last_preload_error", None)
+        index_store.set_status("last_preload_at_utc", started_at, collection)
+        index_store.set_status("last_preload_error", None, collection)
         return {
             "status": "ok",
             "preloaded_at_utc": started_at,
@@ -256,17 +306,17 @@ def preload_resources(load_reranker: bool = PRELOAD_RERANKER_ON_STARTUP) -> dict
         }
     except Exception as exc:
         message = str(exc)
-        index_store.set_status("last_error", message)
-        index_store.set_status("last_preload_at_utc", started_at)
-        index_store.set_status("last_preload_error", message)
+        index_store.set_status("last_error", message, collection)
+        index_store.set_status("last_preload_at_utc", started_at, collection)
+        index_store.set_status("last_preload_error", message, collection)
         raise
 
-def cache_health(load_if_empty: bool = False) -> dict:
+def cache_health(load_if_empty: bool = False, collection: str = COLLECTION_NAME) -> dict:
     """Retorna um snapshot leve do cache/modelos sem obrigatoriamente carregar recursos."""
-    if load_if_empty and not index_store.has_data():
-        _load_resources()
+    if load_if_empty and not _call_with_optional_collection(index_store.has_data, collection):
+        _call_with_optional_collection(_load_resources, collection)
 
-    data = index_store.get_data_if_loaded() or {}
+    data = _call_with_optional_collection(index_store.get_data_if_loaded, collection) or {}
     chunks = data.get("chunks") or []
     embeddings = data.get("embeddings")
     qclient = data.get("qclient")
@@ -274,7 +324,7 @@ def cache_health(load_if_empty: bool = False) -> dict:
     embedding_dim = EXPECTED_EMBEDDING_DIM
 
     return {
-        "resources_cached": index_store.has_data(),
+        "resources_cached": _call_with_optional_collection(index_store.has_data, collection),
         "embedding_model_loaded": bool(data.get("model")),
         "reranker_enabled": ENABLE_RERANKER,
         "reranker_cached": bool(data.get("reranker")),
@@ -291,23 +341,23 @@ def cache_health(load_if_empty: bool = False) -> dict:
         "vector_store": vector_store_health(qclient),
         "embedding_dim": embedding_dim,
         "embeddings_matrix_shape": list(embeddings.shape) if isinstance(embeddings, np.ndarray) else None,
-        "loaded_at_utc": data.get("loaded_at_utc") or index_store.get_status("loaded_at_utc"),
-        "last_error": index_store.get_status("last_error"),
-        "last_preload_at_utc": index_store.get_status("last_preload_at_utc"),
-        "last_preload_error": index_store.get_status("last_preload_error"),
+        "loaded_at_utc": data.get("loaded_at_utc") or _call_status_with_optional_collection(index_store.get_status, "loaded_at_utc", collection),
+        "last_error": _call_status_with_optional_collection(index_store.get_status, "last_error", collection),
+        "last_preload_at_utc": _call_status_with_optional_collection(index_store.get_status, "last_preload_at_utc", collection),
+        "last_preload_error": _call_status_with_optional_collection(index_store.get_status, "last_preload_error", collection),
         "min_dense_score_percent": int(MIN_DENSE_SCORE_FOR_ANSWER * 100),
         "min_dense_score": MIN_DENSE_SCORE_FOR_ANSWER,
     }
 
-def list_available_areas() -> list[str]:
-    data = _load_resources()
+def list_available_areas(collection: str = COLLECTION_NAME) -> list[str]:
+    data = _call_with_optional_collection(_load_resources, collection)
     areas = {c.get("area", "geral") for c in data["chunks"]}
     merged = list(GENERAL_AREAS)
     extras = sorted(area for area in areas if area not in GENERAL_AREAS)
     return merged + extras
 
-def list_available_assuntos() -> list[str]:
-    data = _load_resources()
+def list_available_assuntos(collection: str = COLLECTION_NAME) -> list[str]:
+    data = _call_with_optional_collection(_load_resources, collection)
     assuntos = set()
     for c in data["chunks"]:
         for assunto in c.get("assuntos", []):
@@ -345,6 +395,7 @@ def _dense_ranked_candidates(
     filtro_assunto: str | Iterable[str] | None,
     qclient: Any,
     top_n: int,
+    target_collection: str,
 ) -> tuple[list[int], dict[int, float]]:
     return dense_ranked_candidates(
         query_vec=query_vec,
@@ -352,6 +403,7 @@ def _dense_ranked_candidates(
         filtro_assunto=filtro_assunto,
         qclient=qclient,
         top_n=top_n,
+        target_collection=target_collection,
     )
 
 def _bm25_score(
@@ -454,13 +506,14 @@ def _dedupe_by_parent(candidate_ids: list[int], chunks: list[dict], limit: int) 
 
     return selected
 
-from reranker import ENABLE_RERANKER, _get_reranker
+from bbsia.rag.retrieval.reranker import ENABLE_RERANKER, _get_reranker
 
-def search(
+def _search_single_collection(
     query: str,
-    top_k: int = DEFAULT_TOP_K,
-    filtro_area: str | Iterable[str] | None = None,
-    filtro_assunto: str | Iterable[str] | None = None,
+    top_k: int,
+    filtro_area: str | Iterable[str] | None,
+    filtro_assunto: str | Iterable[str] | None,
+    collection: str,
 ) -> list[dict]:
     query = (query or "").strip()
     if not query:
@@ -473,7 +526,7 @@ def search(
         if not _has_filter_value(filtro_assunto) and plan.filtro_assunto:
             filtro_assunto = plan.filtro_assunto
 
-    data = _load_resources()
+    data = _call_with_optional_collection(_load_resources, collection)
     chunks = data["chunks"]
     model = data["model"]
     qclient = data["qclient"]
@@ -482,7 +535,7 @@ def search(
     doc_freq = data["doc_freq"]
     avgdl = data["avgdl"]
 
-    top_k = max(1, int(top_k))
+    
     eligible_ids = _filter_ids(chunks, filtro_area=filtro_area, filtro_assunto=filtro_assunto)
     if not eligible_ids:
         return []
@@ -501,13 +554,16 @@ def search(
     dense_n = max(top_k * 4, HYBRID_DENSE_CANDIDATES)
     sparse_n = max(top_k * 6, HYBRID_SPARSE_CANDIDATES)
 
-    dense_ranked, dense_scores = _dense_ranked_candidates(
-        query_vec=query_vec,
-        filtro_area=filtro_area,
-        filtro_assunto=filtro_assunto,
-        qclient=qclient,
-        top_n=dense_n,
-    )
+    dense_kwargs = {
+        "query_vec": query_vec,
+        "filtro_area": filtro_area,
+        "filtro_assunto": filtro_assunto,
+        "qclient": qclient,
+        "top_n": dense_n,
+    }
+    if "target_collection" in inspect.signature(_dense_ranked_candidates).parameters:
+        dense_kwargs["target_collection"] = collection
+    dense_ranked, dense_scores = _dense_ranked_candidates(**dense_kwargs)
     sparse_ranked, sparse_scores = _sparse_ranked_candidates(
         query=query,
         eligible_ids=eligible_ids,
@@ -559,6 +615,37 @@ def search(
         )
 
     return results
+
+def search(
+    query: str,
+    top_k: int = DEFAULT_TOP_K,
+    filtro_area: str | Iterable[str] | None = None,
+    filtro_assunto: str | Iterable[str] | None = None,
+    target_collection: str | list[str] = COLLECTION_NAME,
+) -> list[dict]:
+    query = (query or "").strip()
+    if not query:
+        return []
+        
+    top_k = max(1, int(top_k))
+
+    collections = target_collection if isinstance(target_collection, list) else [target_collection]
+    
+    all_results = []
+    for col in collections:
+        all_results.extend(_search_single_collection(
+            query=query, 
+            top_k=top_k, 
+            filtro_area=filtro_area, 
+            filtro_assunto=filtro_assunto, 
+            collection=col
+        ))
+        
+    if len(collections) > 1:
+        all_results.sort(key=lambda x: x["score"], reverse=True)
+        all_results = all_results[:top_k]
+        
+    return all_results
 
 def _format_source_label(item: dict) -> str:
     """Gera rótulo acadêmico: 'Sobrenome, Ano — Título' quando disponível."""

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import requests
 
-import faithfulness
-import pipeline
-import retriever
+from bbsia.rag.generation import faithfulness
+from bbsia.rag import pipeline
+from bbsia.rag.retrieval from bbsia.rag.retrieval import retriever
 
 
 def test_answer_question_uses_extractive_fallback_when_ollama_fails(monkeypatch):

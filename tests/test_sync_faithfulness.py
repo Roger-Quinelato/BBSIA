@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pipeline
+from bbsia.rag import pipeline
 
 
 def _sample_results() -> list[dict]:

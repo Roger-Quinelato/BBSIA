@@ -21,6 +21,7 @@ textos_extraidos_v2.txt
 
 # Pastas de Skill e Ferramentas
 .codex/
-.agente/
-.windsurff/
+.agents/
+.windsurf/
+.cursor/
 docs/

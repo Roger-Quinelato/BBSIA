@@ -12,7 +12,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parents[3]
 SCHEMA_FILE = BASE_DIR / "schemas" / "solucao_piloto.schema.json"
 CATALOGO_FILE = BASE_DIR / "catalogo" / "solucoes_piloto.json"
 OUTPUT_CHUNKS_FILE = BASE_DIR / "data" / "solucoes_piloto_chunks.json"
@@ -61,7 +61,12 @@ def _solution_text(solution: dict[str, Any]) -> str:
             f"Orgao: {solution['orgao']}",
             f"Area: {solution['area']}",
             f"Problema: {solution['problema']}",
+            f"Sintomas: {', '.join(solution.get('sintomas', []))}",
+            f"Causa raiz: {solution.get('causa_raiz', '')}",
+            f"Pre-condicoes: {', '.join(solution.get('pre_condicoes', []))}",
             f"Solucao: {solution['solucao']}",
+            f"Passos de implantacao: {', '.join(solution.get('passos_implantacao', []))}",
+            f"Riscos: {', '.join(solution.get('riscos', []))}",
             f"Tecnologias: {tecnologias}",
             f"Status: {solution['status']}",
             f"Dados pessoais: {conformidade.get('dados_pessoais')}",

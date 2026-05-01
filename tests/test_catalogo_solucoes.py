@@ -17,6 +17,11 @@ def _valid_solution() -> dict:
         "area": "ia",
         "problema": "Problema operacional que precisa de apoio com inteligencia artificial.",
         "solucao": "Solucao baseada em catalogo estruturado, validacao e busca semantica.",
+        "sintomas": ["Sintoma A", "Sintoma B"],
+        "causa_raiz": "Falta de integracao no sistema X.",
+        "pre_condicoes": ["Acesso admin"],
+        "passos_implantacao": ["Passo 1", "Passo 2"],
+        "riscos": ["Risco de lentidao"],
         "tecnologias": ["Python", "FAISS"],
         "status": "piloto",
         "conformidade": {

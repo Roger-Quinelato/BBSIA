@@ -6,6 +6,7 @@ from typing import Any, Iterable
 import numpy as np
 
 COLLECTION_NAME = "bbsia_chunks"
+COLLECTION_SOLUTIONS = "bbsia_solucoes"
 QDRANT_LOCAL_DIRNAME = "qdrant_db"
 
 
@@ -34,6 +35,7 @@ def dense_ranked_candidates(
     filtro_assunto: str | Iterable[str] | None,
     qclient: Any,
     top_n: int,
+    target_collection: str = COLLECTION_NAME,
 ) -> tuple[list[int], dict[int, float]]:
     from qdrant_client.models import FieldCondition, Filter, MatchAny
 
@@ -51,14 +53,14 @@ def dense_ranked_candidates(
     try:
         if hasattr(qclient, "search"):
             results = qclient.search(
-                collection_name=COLLECTION_NAME,
+                collection_name=target_collection,
                 query_vector=query_vec.tolist(),
                 query_filter=query_filter,
                 limit=top_n,
             )
         else:
             response = qclient.query_points(
-                collection_name=COLLECTION_NAME,
+                collection_name=target_collection,
                 query=query_vec.tolist(),
                 query_filter=query_filter,
                 limit=top_n,
@@ -67,7 +69,7 @@ def dense_ranked_candidates(
     except Exception as exc:
         strict = os.getenv("RAG_STRICT_DENSE_ERRORS", "").strip().lower() in {"1", "true", "yes", "on", "sim", "s"}
         if strict:
-            raise RuntimeError(f"Dense retrieval failed for Qdrant collection '{COLLECTION_NAME}': {exc}") from exc
+            raise RuntimeError(f"Dense retrieval failed for Qdrant collection '{target_collection}': {exc}") from exc
         return [], {}
 
     ranked: list[int] = []

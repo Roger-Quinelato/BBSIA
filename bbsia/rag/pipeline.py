@@ -4,11 +4,12 @@ from urllib.parse import urlparse
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from typing import Iterable, AsyncGenerator, Any
+import unicodedata
 import httpx
 import threading
 import numpy as np
 import requests
-from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from bbsia.core.config import get_env_bool, get_env_int, get_env_list, get_env_str
 
 MAX_CONTEXT_CHUNKS = get_env_int("MAX_CONTEXT_CHUNKS", 6, min_value=1, max_value=10)
 ENABLE_STREAM_FAITHFULNESS = get_env_bool("ENABLE_STREAM_FAITHFULNESS", False)
@@ -77,10 +78,123 @@ def _extractive_fallback_answer(pergunta: str, results: list[dict], error: Excep
         + f"Observacao tecnica: a geracao pelo LLM local falhou ({error})."
     )
 
-from retriever import search, _build_context, _format_citation_label, MIN_DENSE_SCORE_FOR_ANSWER, DEFAULT_TOP_K
-from generator import query_ollama, build_prompt, DEFAULT_LLM_MODEL, NO_EVIDENCE_RESPONSE
-from faithfulness import _faithfulness_check, _unique_sources
-from reranker import RERANKER_TOP_N
+from bbsia.rag.retrieval.retriever import search, _build_context, _format_citation_label, MIN_DENSE_SCORE_FOR_ANSWER, DEFAULT_TOP_K
+from bbsia.infrastructure.vector_store import COLLECTION_NAME, COLLECTION_SOLUTIONS
+from bbsia.rag.generation.generator import query_ollama, build_prompt, DEFAULT_LLM_MODEL, NO_EVIDENCE_RESPONSE, NO_SOLUTION_RESPONSE
+from bbsia.rag.generation.faithfulness import _faithfulness_check, _unique_sources
+from bbsia.rag.retrieval.reranker import RERANKER_TOP_N
+
+DIAGNOSTIC_INTENT_TERMS = (
+    "problema",
+    "problemas",
+    "sintoma",
+    "sintomas",
+    "causa",
+    "causa raiz",
+    "diagnostico",
+    "diagnosticar",
+    "resolver",
+    "resolucao",
+    "solucao",
+    "solucoes",
+    "recomendar",
+    "recomendacao",
+    "falha",
+    "falhas",
+    "erro",
+    "erros",
+    "lentidao",
+    "demora",
+    "gargalo",
+    "backlog",
+    "risco",
+    "riscos",
+    "priorizar",
+)
+
+
+def _normalize_intent_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", text or "")
+    without_accents = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    return re.sub(r"\s+", " ", without_accents.lower()).strip()
+
+
+def _is_diagnostic_query(pergunta: str) -> bool:
+    normalized = _normalize_intent_text(pergunta)
+    return any(term in normalized for term in DIAGNOSTIC_INTENT_TERMS)
+
+
+def _tag_results(results: list[dict], retrieval_domain: str) -> list[dict]:
+    tagged: list[dict] = []
+    for item in results:
+        enriched = dict(item)
+        enriched["retrieval_domain"] = retrieval_domain
+        tagged.append(enriched)
+    return tagged
+
+
+def _build_diagnostic_context(solution_results: list[dict], document_results: list[dict]) -> str:
+    solution_context = _build_context(solution_results) if solution_results else "Nenhuma solucao candidata encontrada."
+    document_context = _build_context(document_results) if document_results else "Nenhuma evidencia documental encontrada."
+    return (
+        "--- SOLUCOES CANDIDATAS ---\n"
+        f"{solution_context}\n\n"
+        "--- EVIDENCIAS DOCUMENTAIS ---\n"
+        f"{document_context}"
+    )
+
+
+def _retrieve_for_answer(
+    pergunta: str,
+    top_k: int,
+    filtro_area: str | Iterable[str] | None,
+    filtro_assunto: str | Iterable[str] | None,
+) -> tuple[list[dict], list[dict], str | None, bool]:
+    if not _is_diagnostic_query(pergunta):
+        results = search(
+            query=pergunta,
+            top_k=top_k,
+            filtro_area=filtro_area,
+            filtro_assunto=filtro_assunto,
+        )
+        context_results = results[: min(MAX_CONTEXT_CHUNKS, RERANKER_TOP_N)]
+        context = _build_context(context_results) if context_results else None
+        return results, context_results, context, False
+
+    solution_top_k = max(1, min(top_k, MAX_CONTEXT_CHUNKS))
+    document_top_k = max(1, top_k)
+    solution_results = _tag_results(
+        search(
+            query=pergunta,
+            top_k=solution_top_k,
+            filtro_area=filtro_area,
+            filtro_assunto=filtro_assunto,
+            target_collection=COLLECTION_SOLUTIONS,
+        ),
+        "solucoes",
+    )
+    document_results = _tag_results(
+        search(
+            query=pergunta,
+            top_k=document_top_k,
+            filtro_area=filtro_area,
+            filtro_assunto=filtro_assunto,
+            target_collection=COLLECTION_NAME,
+        ),
+        "documentos",
+    )
+
+    solution_context_results = solution_results[: min(MAX_CONTEXT_CHUNKS, RERANKER_TOP_N)]
+    document_context_results = document_results[: min(MAX_CONTEXT_CHUNKS, RERANKER_TOP_N)]
+    combined_results = solution_results + document_results
+    context_results = solution_context_results + document_context_results
+    context = _build_diagnostic_context(solution_context_results, document_context_results)
+    return combined_results, context_results, context, True
+
+
+def _has_catalog_solution(results: list[dict]) -> bool:
+    return any(item.get("retrieval_domain") == "solucoes" for item in results)
+
 
 def _llm_declined_with_available_context(resposta: str) -> bool:
     normalized = re.sub(r"\s+", " ", (resposta or "").strip().lower())
@@ -94,12 +208,21 @@ def answer_question(
     filtro_assunto: str | Iterable[str] | None = None,
     history: list[dict[str, str]] | None = None,
 ) -> dict:
-    results = search(
-        query=pergunta,
+    results, context_results, context, is_diagnostic = _retrieve_for_answer(
+        pergunta=pergunta,
         top_k=top_k,
         filtro_area=filtro_area,
         filtro_assunto=filtro_assunto,
     )
+
+    if is_diagnostic and not _has_catalog_solution(results):
+        return {
+            "resposta": NO_SOLUTION_RESPONSE,
+            "fontes": _unique_sources(results),
+            "resultados": results,
+            "prompt": None,
+            "diagnostic_mode": True,
+        }
 
     if not results:
         return {
@@ -117,10 +240,9 @@ def answer_question(
             "prompt": None,
         }
 
-    context_limit = min(MAX_CONTEXT_CHUNKS, RERANKER_TOP_N)
-    context_results = results[:context_limit]
-    context = _build_context(context_results)
-    prompt = build_prompt(pergunta=pergunta, context=context, history=history)
+    if context is None:
+        context = _build_context(context_results)
+    prompt = build_prompt(pergunta=pergunta, context=context, history=history, diagnostic_mode=is_diagnostic)
     try:
         resposta = query_ollama(prompt=prompt, model=model)
         if _llm_declined_with_available_context(resposta):
@@ -137,9 +259,10 @@ def answer_question(
         "fontes": _unique_sources(results),
         "resultados": results,
         "prompt": prompt,
+        "diagnostic_mode": is_diagnostic,
     }
 
-from generator import query_ollama_stream
+from bbsia.rag.generation.generator import query_ollama_stream
 
 async def answer_question_stream(
     pergunta: str,
@@ -149,8 +272,8 @@ async def answer_question_stream(
     filtro_assunto: str | Iterable[str] | None = None,
     history: list[dict[str, str]] | None = None,
 ) -> AsyncGenerator[dict, None]:
-    results = search(
-        query=pergunta,
+    results, context_results, context, is_diagnostic = _retrieve_for_answer(
+        pergunta=pergunta,
         top_k=top_k,
         filtro_area=filtro_area,
         filtro_assunto=filtro_assunto,
@@ -158,26 +281,38 @@ async def answer_question_stream(
 
     fontes = _unique_sources(results)
 
+    if is_diagnostic and not _has_catalog_solution(results):
+        yield {
+            "type": "metadata",
+            "fontes": fontes,
+            "resultados": results,
+            "prompt": None,
+            "diagnostic_mode": True,
+        }
+        yield {"type": "token", "token": NO_SOLUTION_RESPONSE}
+        return
+
     if not results or not _retrieval_has_answer_signal(results):
         yield {
             "type": "metadata",
             "fontes": fontes,
             "resultados": results,
             "prompt": None,
+            "diagnostic_mode": is_diagnostic,
         }
         yield {"type": "token", "token": NO_EVIDENCE_RESPONSE}
         return
 
-    context_limit = min(MAX_CONTEXT_CHUNKS, RERANKER_TOP_N)
-    context_results = results[:context_limit]
-    context = _build_context(context_results)
-    prompt = build_prompt(pergunta=pergunta, context=context, history=history)
+    if context is None:
+        context = _build_context(context_results)
+    prompt = build_prompt(pergunta=pergunta, context=context, history=history, diagnostic_mode=is_diagnostic)
 
     yield {
         "type": "metadata",
         "fontes": fontes,
         "resultados": results,
         "prompt": prompt,
+        "diagnostic_mode": is_diagnostic,
     }
 
     try:

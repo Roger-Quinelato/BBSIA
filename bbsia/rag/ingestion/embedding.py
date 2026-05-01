@@ -12,11 +12,10 @@ import hashlib
 import json
 import logging
 import os
-import shutil
 from datetime import datetime, timezone
 
 import numpy as np
-from config import get_env_bool, get_env_int, get_env_str
+from bbsia.core.config import get_env_bool, get_env_int, get_env_str
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -27,7 +26,8 @@ except ImportError as exc:  # pragma: no cover
 MODEL_NAME = get_env_str("EMBEDDING_MODEL", "intfloat/multilingual-e5-large")
 EXPECTED_EMBEDDING_DIM = get_env_int("EMBEDDING_DIM", 1024, min_value=1, max_value=8192)
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DATA_DIR = os.path.join(_REPO_ROOT, "data")
 CHUNKS_FILE = os.path.join(DATA_DIR, "chunks.json")
 PARENTS_FILE = os.path.join(DATA_DIR, "parents.json")
 METADATA_DIR = os.path.join(DATA_DIR, "qdrant_index_metadata")
@@ -39,7 +39,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _script_dir() -> str:
-    return os.path.dirname(os.path.abspath(__file__))
+    return _REPO_ROOT
 
 
 def _load_chunks(chunks_path: str) -> list[dict]:
@@ -111,6 +111,28 @@ def _write_index_manifest(metadata_dir: str, metadata_path: str) -> str:
     }
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
+    """Aplica o prefixo recomendado para modelos E5 em documentos."""
+    return f"{E5_PASSAGE_PREFIX}{(text or '').strip()}"
+
+
+def _sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _write_index_manifest(metadata_dir: str, metadata_path: str) -> str:
+    manifest_path = os.path.join(metadata_dir, MANIFEST_FILE)
+    manifest = {
+        "vector_backend": "qdrant_local",
+        "metadata_path": os.path.abspath(metadata_path),
+        METADATA_FILE: _sha256_file(metadata_path),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
     return manifest_path
 
 
@@ -120,6 +142,7 @@ def run_embedding(
     index_dir: str | None = None,
     model_name: str = MODEL_NAME,
     batch_size: int = BATCH_SIZE,
+    collection_name: str = "bbsia_chunks",
 ) -> dict:
     if index_dir:
         # Alias legado: manter compatibilidade com chamadores antigos.
@@ -168,17 +191,7 @@ def run_embedding(
     from qdrant_client import QdrantClient
     from qdrant_client.models import VectorParams, Distance, PointStruct
 
-    if os.path.exists(qdrant_path):
-        try:
-            shutil.rmtree(qdrant_path)
-        except OSError as exc:
-            raise RuntimeError(
-                f"Nao foi possivel limpar o indice Qdrant local em {qdrant_path}. "
-                "Feche processos Python que estejam usando data/qdrant_db e rode embedding.py novamente."
-            ) from exc
-    
     client = QdrantClient(path=qdrant_path)
-    collection_name = "bbsia_chunks"
     
     if client.collection_exists(collection_name):
         client.delete_collection(collection_name)

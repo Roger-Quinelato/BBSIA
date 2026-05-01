@@ -8,7 +8,7 @@ import httpx
 import threading
 import numpy as np
 import requests
-from config import settings
+from bbsia.core.config import settings
 from sentence_transformers import CrossEncoder
 
 ENABLE_RERANKER = settings.reranker.enable_reranker
@@ -27,7 +27,7 @@ def _get_reranker() -> CrossEncoder | None:
     if not ENABLE_RERANKER:
         return None
 
-    from retriever import _load_resources
+    from bbsia.rag.retrieval.retriever import _load_resources
     data = _load_resources()
     reranker = data.get("reranker")
     if reranker is None:

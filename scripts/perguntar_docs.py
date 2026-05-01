@@ -17,13 +17,11 @@ except AttributeError:
 
 def _snippet(text: str, max_chars: int = 900) -> str:
     cleaned = " ".join((text or "").split())
-    if len(cleaned) <= max_chars:
-        return cleaned
-    return cleaned[:max_chars].rstrip() + "..."
+    return cleaned if len(cleaned) <= max_chars else cleaned[:max_chars].rstrip() + "..."
 
 
 def _print_search(pergunta: str, top_k: int, filtro_area: list[str], filtro_assunto: list[str]) -> None:
-    from retriever import search
+    from bbsia.rag.retrieval.retriever import search
 
     results = search(
         query=pergunta,
@@ -54,7 +52,7 @@ def _print_search(pergunta: str, top_k: int, filtro_area: list[str], filtro_assu
 
 
 def _print_answer(pergunta: str, top_k: int, filtro_area: list[str], filtro_assunto: list[str]) -> None:
-    from pipeline import answer_question
+    from bbsia.rag.pipeline import answer_question
 
     payload = answer_question(
         pergunta=pergunta,

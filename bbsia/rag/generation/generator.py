@@ -8,7 +8,7 @@ import httpx
 import threading
 import numpy as np
 import requests
-from config import settings
+from bbsia.core.config import settings
 
 OLLAMA_URL = settings.ollama_generation.ollama_url
 
@@ -27,6 +27,10 @@ OLLAMA_NUM_CTX = settings.ollama_generation.ollama_num_ctx
 E5_QUERY_PREFIX = "query: "
 
 NO_EVIDENCE_RESPONSE = "Não encontrei evidências suficientes nos documentos indexados."
+NO_SOLUTION_RESPONSE = (
+    "Nao encontrei uma solucao candidata no catalogo de solucoes piloto para esse problema. "
+    "Posso resumir evidencias documentais recuperadas, mas nao vou recomendar passos de implantacao sem uma solucao catalogada."
+)
 
 SYSTEM_PROMPT = (
     "Você é o assistente técnico do BBSIA. Responda sempre em português e use somente o contexto fornecido. "
@@ -37,6 +41,18 @@ SYSTEM_PROMPT = (
     "Use a frase 'Não encontrei evidências suficientes nos documentos indexados.' apenas se o contexto estiver "
     "vazio, irrelevante ou contraditório para a pergunta. "
     "Inclua citações no formato (Sobrenome, Ano) nas afirmações baseadas nas fontes."
+)
+
+DIAGNOSTIC_CONTEXT_MARKER = "--- SOLUCOES CANDIDATAS ---"
+
+DIAGNOSTIC_PROMPT = (
+    "Modo diagnostico de problemas: use as SOLUCOES CANDIDATAS como fonte principal e as "
+    "EVIDENCIAS DOCUMENTAIS apenas como apoio. Nao invente causa raiz, passos, riscos, "
+    "pre-condicoes ou restricoes que nao estejam no contexto. Se nao houver solucao candidata "
+    "do catalogo, responda somente com a mensagem conservadora de indisponibilidade de solucao. "
+    "Quando houver solucao candidata, responda obrigatoriamente com estas secoes, nesta ordem: "
+    "Diagnostico, Solucao Recomendada, Passos, Riscos. Em Solucao Recomendada, cite o nome da "
+    "solucao catalogada. Em Passos e Riscos, use apenas itens presentes na solucao candidata."
 )
 
 def _is_loopback_host(hostname: str | None) -> bool:
@@ -78,7 +94,12 @@ def list_ollama_models(timeout_sec: int = 5) -> list[str]:
     except Exception:
         return sorted(ALLOWED_LLM_MODELS)
 
-def build_prompt(pergunta: str, context: str, history: list[dict[str, str]] | None = None) -> str:
+def build_prompt(
+    pergunta: str,
+    context: str,
+    history: list[dict[str, str]] | None = None,
+    diagnostic_mode: bool | None = None,
+) -> str:
     history_text = ""
     if history:
         # Pega as ultimas 3 interacoes para contexto
@@ -89,8 +110,13 @@ def build_prompt(pergunta: str, context: str, history: list[dict[str, str]] | No
             lines.append(f"{role}: {msg['content']}")
         history_text = "--- HISTORICO DE CONVERSA ---\n" + "\n".join(lines) + "\n\n"
 
+    is_diagnostic = diagnostic_mode if diagnostic_mode is not None else DIAGNOSTIC_CONTEXT_MARKER in (context or "")
+    system_prompt = SYSTEM_PROMPT
+    if is_diagnostic:
+        system_prompt = f"{SYSTEM_PROMPT}\n\n{DIAGNOSTIC_PROMPT}\nMensagem conservadora: {NO_SOLUTION_RESPONSE}"
+
     return (
-        f"{SYSTEM_PROMPT}\n\n"
+        f"{system_prompt}\n\n"
         f"{history_text}"
         "--- CONTEXTO FORNECIDO ---\n"
         f"{context}\n\n"

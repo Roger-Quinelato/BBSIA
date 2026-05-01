@@ -1,0 +1,142 @@
+[
+  {
+    "id": "solucao-ia-classificacao-chamados",
+    "nome": "Classificação Automática de Chamados de TI",
+    "descricao": "Utilização de NLP para classificar e rotear chamados do helpdesk automaticamente baseando-se na descrição do problema.",
+    "orgao": "Tribunal Regional da 99a Região",
+    "area": "tecnologia",
+    "problema": "Alto tempo de triagem manual de chamados e erros frequentes no roteamento para as equipes especializadas.",
+    "solucao": "Implementar um pipeline com modelo de linguagem open-source treinado em histórico de chamados para sugerir a fila correta.",
+    "sintomas": [
+      "Tempo médio de resposta (TME) alto na triagem",
+      "Muitos chamados transferidos entre equipes",
+      "Reclamações de usuários sobre demora"
+    ],
+    "causa_raiz": "Processo manual e dependente de leitura individual de chamados genéricos.",
+    "pre_condicoes": [
+      "Ter acesso aos dados históricos do sistema de chamados via API",
+      "Ter servidor com GPU ou CPU potente para hospedar modelo leve"
+    ],
+    "passos_implantacao": [
+      "Extrair dataset histórico de chamados e filas correspondentes",
+      "Treinar/Fine-tuning de um modelo base (ex: BERT)",
+      "Implantar API de predição do modelo",
+      "Integrar com sistema de chamados via webhook"
+    ],
+    "riscos": [
+      "Viés no modelo devido a erros históricos de classificação",
+      "Queda da API afetando a criação e visualização de chamados"
+    ],
+    "tecnologias": [
+      "Python",
+      "FastAPI",
+      "Transformers",
+      "scikit-learn"
+    ],
+    "status": "piloto",
+    "conformidade": {
+      "dados_pessoais": "sim",
+      "base_legal_lgpd": "Execução de políticas públicas",
+      "hospedagem": "local",
+      "modelo": "bert-base-multilingual-cased",
+      "licenca_modelo": "Apache 2.0",
+      "dependencias_open_source": [
+        "transformers",
+        "fastapi",
+        "scikit-learn"
+      ]
+    }
+  },
+  {
+    "id": "solucao-ia-analise-contratos",
+    "nome": "Extração de Metadados em Contratos",
+    "descricao": "Ferramenta para extração automática de prazos, valores e partes envolvidas em contratos escaneados usando OCR e LLMs.",
+    "orgao": "Ministério da Economia",
+    "area": "juridico",
+    "problema": "Auditores demoram horas para ler contratos extensos apenas para tabular dados básicos.",
+    "solucao": "Pipeline de OCR seguido de LLM instruído (prompt) para extrair e validar entidades e formatar em JSON.",
+    "sintomas": [
+      "Backlog de auditoria crescente",
+      "Erros de digitação nas planilhas de acompanhamento",
+      "Falta de padrão nos metadados cadastrados"
+    ],
+    "causa_raiz": "Processo dependente de leitura humana minuciosa de PDFs extensos e mal formatados.",
+    "pre_condicoes": [
+      "Acesso aos contratos digitalizados na rede",
+      "Qualidade mínima de resolução dos PDFs (mínimo 300dpi)"
+    ],
+    "passos_implantacao": [
+      "Configurar Tesseract para OCR local",
+      "Configurar modelo Ollama localmente",
+      "Criar script de orquestração Python",
+      "Validar extração contra dataset ouro (100 contratos validados por humanos)"
+    ],
+    "riscos": [
+      "Baixa precisão no OCR afetando o entendimento do LLM",
+      "Alucinação do modelo em valores financeiros críticos"
+    ],
+    "tecnologias": [
+      "Tesseract",
+      "Ollama",
+      "Python"
+    ],
+    "status": "validacao",
+    "conformidade": {
+      "dados_pessoais": "sim",
+      "base_legal_lgpd": "Cumprimento de obrigação legal ou regulatória",
+      "hospedagem": "local",
+      "modelo": "llama3-8b",
+      "licenca_modelo": "Llama 3 License",
+      "dependencias_open_source": [
+        "pytesseract",
+        "ollama-python"
+      ]
+    }
+  },
+  {
+    "id": "solucao-ia-triagem-saude",
+    "nome": "Triagem Preditiva de Fila de Exames",
+    "descricao": "Modelo preditivo que prioriza a fila de exames de imagem baseando-se em texto de pedido médico e idade do paciente.",
+    "orgao": "Hospital das Clínicas",
+    "area": "saude",
+    "problema": "Pacientes com indícios de gravidade não sendo priorizados adequadamente devido a volume de pedidos e demora na avaliação manual.",
+    "solucao": "Modelo de classificação de texto para identificar marcadores de urgência no pedido médico e sugerir ordem de fila.",
+    "sintomas": [
+      "Tempo de espera longo para exames críticos",
+      "Reclamações do corpo médico sobre atraso no diagnóstico",
+      "Agravamento do quadro de pacientes na fila de espera"
+    ],
+    "causa_raiz": "Gargalo humano na triagem dos milhares de pedidos que chegam à central de regulação diariamente.",
+    "pre_condicoes": [
+      "Sistema de RIS/PACS integrado via API ou banco de dados",
+      "Consentimento dos pacientes ou base anonimizada para treino do modelo"
+    ],
+    "passos_implantacao": [
+      "Anonimizar banco de dados de pedidos históricos",
+      "Anotar 5000 pedidos com nível de urgência Ouro",
+      "Treinar classificador XGBoost com embeddings do Spacy",
+      "Integrar via API ao RIS para atualizar a fila"
+    ],
+    "riscos": [
+      "Falsos negativos rebaixando pacientes graves na fila",
+      "Viés sistêmico em relação a certas faixas etárias ou especialidades"
+    ],
+    "tecnologias": [
+      "Python",
+      "XGBoost",
+      "Spacy"
+    ],
+    "status": "ideacao",
+    "conformidade": {
+      "dados_pessoais": "sim",
+      "base_legal_lgpd": "Tutela da saúde e proteção à vida",
+      "hospedagem": "local",
+      "modelo": "Spacy PT Core",
+      "licenca_modelo": "MIT",
+      "dependencias_open_source": [
+        "spacy",
+        "xgboost"
+      ]
+    }
+  }
+]

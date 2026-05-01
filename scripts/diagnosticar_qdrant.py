@@ -17,8 +17,8 @@ try:
 except AttributeError:
     pass
 
-from retriever import DATA_DIR, search  # noqa: E402
-from vector_store import COLLECTION_NAME, get_local_qdrant_client  # noqa: E402
+from bbsia.rag.retrieval.retriever import DATA_DIR, search  # noqa: E402
+from bbsia.infrastructure.vector_store import COLLECTION_NAME, get_local_qdrant_client  # noqa: E402
 
 
 def _load_json(path: Path) -> dict:

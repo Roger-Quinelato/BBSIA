@@ -20,7 +20,7 @@ from typing import Any
 import fitz  # PyMuPDF
 from pydantic import BaseModel, Field
 
-from config import get_env_str
+from bbsia.core.config import get_env_str
 
 # ---------------------------------------------------------------------------
 # Configuração
@@ -29,7 +29,8 @@ from config import get_env_str
 OLLAMA_URL = get_env_str("OLLAMA_URL", "http://localhost:11434")
 CLASSIFICADOR_MODEL = get_env_str("CLASSIFICADOR_MODEL", get_env_str("DEFAULT_MODEL", "qwen3.5:7b-instruct"))
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+BASE_DIR = _REPO_ROOT
 DATA_DIR = os.path.join(BASE_DIR, "data")
 BIBLIOTECA_FILE = os.path.join(DATA_DIR, "biblioteca.json")
 

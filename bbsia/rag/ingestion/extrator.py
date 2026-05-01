@@ -19,13 +19,14 @@ from typing import Any
 import fitz  # PyMuPDF
 
 try:
-    from classificador_artigo import atualizar_biblioteca, classificar_de_payload
+    from bbsia.rag.ingestion.classificador import atualizar_biblioteca, classificar_de_payload
     _HAS_CLASSIFICADOR = True
 except ImportError:
     _HAS_CLASSIFICADOR = False
 
 
-INPUT_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+INPUT_DIR = _REPO_ROOT
 DOCS_DIR = os.path.join(INPUT_DIR, "docs")
 UPLOADS_DIR = os.path.join(INPUT_DIR, "uploads")
 QUARANTINE_DIR = os.path.join(UPLOADS_DIR, "quarantine")

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import fitz
 
-import chunking
-import extrator_pdf_v2
-from extrator_pdf_v2 import extract_text_from_pdf
+from bbsia.rag.ingestion import chunking
+from bbsia.rag.ingestion import extrator as extrator_pdf_v2
+from bbsia.rag.ingestion.extrator import extract_text_from_pdf
 
 
 def test_extract_text_from_small_pdf(tmp_path):

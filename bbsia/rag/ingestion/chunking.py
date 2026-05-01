@@ -23,7 +23,8 @@ CHILD_CHUNK_SIZE = 300
 CHILD_CHUNK_OVERLAP = 35
 PARENT_MAX_WORDS = 900
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+_REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DATA_DIR = os.path.join(_REPO_ROOT, "data")
 STRUCTURED_INPUT_FILE = os.path.join(DATA_DIR, "documentos_extraidos_v2.json")
 OUTPUT_FILE = os.path.join(DATA_DIR, "chunks.json")
 PARENTS_FILE = os.path.join(DATA_DIR, "parents.json")
@@ -35,16 +36,16 @@ CATEGORIAS_DOCUMENTOS = {}
 try:
     import yaml
     import os
-    cat_path = os.path.join(os.path.dirname(__file__), 'config', 'categorias.yaml')
+    cat_path = os.path.join(_REPO_ROOT, 'bbsia', 'core', 'categorias.yaml')
     if os.path.exists(cat_path):
         with open(cat_path, 'r', encoding='utf-8') as f:
             CATEGORIAS_DOCUMENTOS = yaml.safe_load(f) or {}
 except Exception as e:
-    LOGGER.warning(f'Failed to load config/categorias.yaml: {e}')
+    LOGGER.warning(f'Failed to load bbsia/core/categorias.yaml: {e}')
 
 
 def _script_dir() -> str:
-    return os.path.dirname(os.path.abspath(__file__))
+    return _REPO_ROOT
 
 
 def load_upload_metadata(filepath: str | None = None) -> dict:

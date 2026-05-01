@@ -14,7 +14,12 @@
     "solucao",
     "tecnologias",
     "status",
-    "conformidade"
+    "conformidade",
+    "sintomas",
+    "causa_raiz",
+    "pre_condicoes",
+    "passos_implantacao",
+    "riscos"
   ],
   "properties": {
     "id": {
@@ -76,6 +81,28 @@
         "producao",
         "suspensa"
       ]
+    },
+    "sintomas": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "causa_raiz": {
+      "type": "string",
+      "minLength": 5
+    },
+    "pre_condicoes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "passos_implantacao": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "riscos": {
+      "type": "array",
+      "items": { "type": "string" }
     },
     "conformidade": {
       "type": "object",

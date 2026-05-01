@@ -5,7 +5,7 @@ import json
 from fastapi.testclient import TestClient
 
 import api
-import api_core
+from bbsia.app import core as api_core
 import routers.rag as rag_router
 import routers.system as system_router
 

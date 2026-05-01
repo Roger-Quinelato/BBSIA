@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from embedding import _load_chunks, _load_parents_map, _split_lean_chunks_and_parents
+from bbsia.rag.ingestion.embedding import _load_chunks, _load_parents_map, _split_lean_chunks_and_parents
 
 
 def test_load_chunks_raises_on_missing_file(tmp_path):

@@ -8,9 +8,9 @@ import httpx
 import threading
 import numpy as np
 import requests
-from config import get_env_bool, get_env_int, get_env_list, get_env_str
+from bbsia.core.config import get_env_bool, get_env_int, get_env_list, get_env_str
 
-from retriever import _format_source_label
+from bbsia.rag.retrieval.retriever import _format_source_label
 
 def _unique_sources(results: list[dict]) -> list[str]:
     seen = set()
