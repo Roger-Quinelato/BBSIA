@@ -1,107 +1,95 @@
 # BBSIA RAG
 
-Backend local de RAG semantico para o Banco Brasileiro de Solucoes de IA (BBSIA).
+Backend local de RAG semantico para o Banco Brasileiro de Solucoes de IA
+(BBSIA).
 
-O projeto implementa uma base de consulta inteligente sobre documentos e prepara a evolucao para um chatbot capaz de diagnosticar problemas e recomendar solucoes estruturadas a partir de um catalogo curado de solucoes piloto.
+O projeto implementa uma API FastAPI para consultar documentos, recuperar
+evidencias por busca hibrida, gerar respostas com um modelo local via Ollama e
+evoluir para diagnostico de problemas com base em um catalogo curado de
+solucoes piloto.
 
-## Visao Geral
+## Visao geral
 
-O BBSIA tem como objetivo apoiar a descoberta, reutilizacao e governanca de solucoes de inteligencia artificial no Brasil. A proposta descrita nos materiais da pasta `RPI` combina:
+O BBSIA RAG ajuda equipes a consultar documentos e reutilizar solucoes de IA
+com mais rastreabilidade. A aplicacao combina:
 
-- um banco/catalogo de solucoes de IA;
-- busca semantica, textual e facetada;
-- recomendacoes baseadas em evidencias;
-- infraestrutura local/soberana sempre que possivel;
-- integracao futura com fluxos como login gov.br, curadoria e publicacao de solucoes.
+- ingestao de PDFs e documentos aprovados;
+- extracao estruturada de texto, secoes, tabelas e OCR quando necessario;
+- chunks parent-child com metadados de documento, pagina, area e assunto;
+- embeddings com SentenceTransformers e armazenamento vetorial no Qdrant local;
+- busca hibrida com Qdrant, BM25, Reciprocal Rank Fusion (RRF) e reranker
+  opcional;
+- respostas em portugues geradas pelo Ollama com fontes recuperadas;
+- modo diagnostico para recomendar solucoes do catalogo piloto quando a
+  pergunta descreve sintomas, falhas ou problemas.
 
-Nesta base, o foco principal e o backend de RAG: ingestao de documentos, geracao de embeddings, recuperacao semantica e resposta via modelo local.
-
-## Objetivo do Projeto
-
-A arquitetura atual responde bem ao caso de uso "perguntar aos documentos". A evolucao planejada e transformar o chatbot em uma ferramenta de resolucao de problemas:
-
-1. o usuario descreve sintomas ou um problema tecnico/operacional;
-2. o sistema busca solucoes candidatas em um catalogo estruturado;
-3. o RAG recupera evidencias documentais de apoio;
-4. o LLM gera uma resposta com diagnostico, solucao recomendada, passos, riscos e restricoes;
-5. se nao houver solucao confiavel no catalogo, o sistema deve responder de forma conservadora, sem inventar recomendacoes.
+Para uma explicacao detalhada da pasta `bbsia/`, leia
+[documentation/backend-bbsia.md](documentation/backend-bbsia.md).
 
 ## Arquitetura
 
-Componentes principais:
-
-- **FastAPI**: API HTTP, endpoints de chat, busca e administracao.
-- **Qdrant local**: armazenamento vetorial dos chunks.
-- **SentenceTransformers / E5**: geracao de embeddings multilingues.
-- **BM25 + RRF + reranking opcional**: recuperacao hibrida para combinar busca semantica e lexical.
-- **Ollama**: geracao local das respostas.
-- **Catalogo de solucoes piloto**: dominio estruturado em evolucao para recomendacao de solucoes.
-
-Fluxo simplificado:
-
 ```mermaid
 flowchart LR
-    A[PDFs e documentos] --> B[Extracao]
-    B --> C[Chunking]
-    C --> D[Embeddings]
+    A[PDFs e uploads aprovados] --> B[Extracao]
+    B --> C[Chunking parent-child]
+    C --> D[Embeddings E5]
     D --> E[Qdrant local]
-    F[Usuario] --> G[API FastAPI]
-    G --> H[Retriever hibrido]
-    H --> E
-    H --> I[Contexto recuperado]
-    I --> J[Ollama]
-    J --> K[Resposta com fontes]
+    C --> F[BM25 local]
+    G[Usuario] --> H[API FastAPI]
+    H --> I[Retriever hibrido]
+    I --> E
+    I --> F
+    I --> J[RRF + reranker opcional]
+    J --> K[Contexto recuperado]
+    K --> L[Ollama]
+    L --> M[Resposta com fontes ou fallback]
 ```
 
-Evolucao planejada para problemas e solucoes:
+O modo diagnostico usa o catalogo de solucoes como fonte principal e documentos
+como evidencias de apoio.
 
 ```mermaid
 flowchart LR
-    A[Descricao do problema] --> B[Roteamento de intencao]
-    B --> C[Busca no catalogo de solucoes]
-    B --> D[Busca em documentos de apoio]
+    A[Descricao do problema] --> B[Deteccao de intencao]
+    B --> C[Busca em solucoes piloto]
+    B --> D[Busca em documentos]
     C --> E[Solucoes candidatas]
     D --> F[Evidencias documentais]
-    E --> G[Prompt de diagnostico]
+    E --> G[Prompt diagnostico]
     F --> G
-    G --> H[Diagnostico e recomendacao]
+    G --> H[Diagnostico, solucao, passos e riscos]
 ```
 
-## Estrutura do Repositorio
+## Estrutura do repositorio
 
 ```text
 .
-|-- bbsia/
-|   |-- app/
-|   |   |-- bootstrap/             # Ponto de entrada FastAPI
-|   |   |-- contracts/             # Schemas Pydantic da API
-|   |   |-- routers/               # Endpoints HTTP
-|   |   |-- runtime/               # App, estado, auditoria e reprocessamento
-|   |   |-- security/              # Autenticacao e rate limit
-|   |   `-- uploads_service/       # Upload, quarentena e validacao de PDFs
-|   |-- cli/                       # Comandos operacionais
-|   |-- core/                      # Configuracao e recursos compartilhados
-|   |-- domain/catalogo/           # Catalogo, schema e validacao de solucoes
-|   |-- evaluation/benchmarks/     # Benchmarks, datasets e resultados
-|   |-- infrastructure/            # Integracoes tecnicas, como Qdrant
-|   `-- rag/
-|       |-- generation/            # Prompts, Ollama e faithfulness
-|       |-- ingestion/             # Extracao, chunking e embeddings
-|       |-- orchestration/         # Pipeline RAG
-|       |-- public_api/            # Fachada interna do motor RAG
-|       `-- retrieval/             # Busca hibrida, reranker e query planning
-|-- data/                          # Dados extraidos, chunks, metadados e indice local
-|-- tests/                         # Testes automatizados
-|-- uploads/                       # Arquivos enviados e aprovados em runtime
-`-- RPI/                           # Especificacoes, diagnostico e materiais de planejamento
+|-- bbsia/                  # Pacote Python e backend principal
+|   |-- app/                # FastAPI, routers, contratos, runtime e seguranca
+|   |-- cli/                # Comandos operacionais
+|   |-- core/               # Configuracao e observabilidade
+|   |-- domain/             # Catalogo, biblioteca e metadados de documentos
+|   |-- evaluation/         # Benchmarks e datasets de avaliacao
+|   |-- infrastructure/     # Integracoes tecnicas, como Qdrant
+|   `-- rag/                # Ingestao, retrieval, geracao e orquestracao RAG
+|-- data/                   # Artefatos gerados e indice local
+|-- docs/                   # Documentacao, PDFs de referencia e artefatos HTML
+|-- RPI/                    # Especificacoes, design, tarefas e diagnosticos
+|-- tests/                  # Testes automatizados
+|-- uploads/                # Uploads em quarentena e aprovados
+|-- .env.example            # Variaveis de ambiente de referencia
+|-- Makefile                # Comandos comuns
+|-- pyproject.toml          # Metadados do pacote e ferramentas
+`-- requirements.txt        # Dependencias Python
 ```
 
 ## Requisitos
 
-- Python 3.10 ou superior
-- Ollama em execucao local
-- Modelo de LLM disponivel no Ollama
-- Dependencias Python listadas em `requirements.txt`
+- Python 3.10 ou superior.
+- Ollama em execucao local.
+- Um modelo Ollama listado em `ALLOWED_LLM_MODELS`.
+- Dependencias Python em `requirements.txt`.
+- Cache local do modelo de embedding quando `HF_LOCAL_FILES_ONLY=true`.
 
 Dependencias principais:
 
@@ -114,7 +102,7 @@ Dependencias principais:
 - `jsonschema`
 - `prometheus-fastapi-instrumentator`
 
-## Configuracao Local
+## Configuracao local
 
 Crie e ative um ambiente virtual:
 
@@ -129,17 +117,21 @@ Instale as dependencias:
 .\.venv\Scripts\pip.exe install -r requirements.txt
 ```
 
-Copie o exemplo de variaveis de ambiente, se necessario:
+Copie as variaveis de ambiente de exemplo:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Garanta que o Ollama esteja ativo e que o modelo configurado esteja disponivel:
+Confira se o Ollama esta ativo e se o modelo configurado existe:
 
 ```powershell
 ollama list
 ```
+
+Leia [documentation/operacao-local.md](documentation/operacao-local.md) para
+detalhes sobre Ollama, embeddings, reranker, upload, reprocessamento e
+troubleshooting.
 
 ## Execucao
 
@@ -149,37 +141,57 @@ Suba a API local:
 .\.venv\Scripts\uvicorn.exe bbsia.app.bootstrap.main:app --host 0.0.0.0 --port 8000
 ```
 
-Ou use o alvo do `Makefile`:
+Ou use o `Makefile`:
 
 ```powershell
 make run
 ```
 
-A API ficara disponivel em:
+A API fica disponivel em:
 
 ```text
 http://localhost:8000
 ```
 
-## Endpoints Principais
+As interfaces OpenAPI ficam em:
 
-- `POST /chat`: conversa com o chatbot RAG.
-- `POST /chat/stream`: resposta em streaming, quando habilitada.
-- `GET /search`: busca semantica/textual nos documentos indexados.
-- `POST /reprocessar`: reprocessa documentos e atualiza a base vetorial.
-- Endpoints administrativos e de biblioteca ficam organizados em `bbsia/app/routers/`.
+- `http://localhost:8000/docs`
+- `http://localhost:8000/redoc`
 
-## Reprocessamento e Embeddings
+## Endpoints principais
 
-O fluxo de reprocessamento extrai documentos, gera chunks, calcula embeddings e atualiza o indice local.
+- `POST /chat`: conversa com o chatbot RAG. A resposta usa streaming NDJSON.
+- `POST /search`: busca hibrida nos documentos indexados.
+- `GET /areas`: lista areas disponiveis no indice.
+- `GET /assuntos`: lista assuntos disponiveis no indice.
+- `GET /modelos`: lista modelos Ollama permitidos.
+- `GET /rag/health`: mostra o estado do cache RAG.
+- `GET /status`: mostra saude da API, Ollama, indice e reprocessamento.
+- `GET /biblioteca`: lista documentos da biblioteca com filtros.
+- `POST /upload`: envia PDFs para quarentena.
+- `GET /admin/quarantine`: lista uploads pendentes de revisao.
+- `POST /admin/quarantine/{stored_filename}/approve`: aprova um PDF.
+- `POST /reprocessar`: enfileira reprocessamento da base.
+- `POST /recarregar`: recarrega recursos RAG em memoria.
+
+Veja exemplos em [documentation/api-reference.md](documentation/api-reference.md).
+
+## Reprocessamento e embeddings
+
+Execute o reprocessamento pela API:
 
 ```powershell
 make reprocess
 ```
 
-Para o dominio de solucoes piloto, existe um plano de evolucao para manter colecoes separadas no Qdrant, evitando que a ingestao de solucoes sobrescreva o indice documental principal.
+O pipeline extrai PDFs, gera chunks, calcula embeddings e atualiza o Qdrant
+local. O codigo tambem prepara uma colecao separada para solucoes piloto:
 
-## Testes e Qualidade
+```powershell
+make solucoes-embedding
+```
+
+## Testes e qualidade
 
 Execute a suite de testes:
 
@@ -187,43 +199,23 @@ Execute a suite de testes:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Com `Makefile`:
+Ou use o `Makefile`:
 
 ```powershell
 make test
-```
-
-Verificacoes auxiliares:
-
-```powershell
 make lint
 make typecheck
 ```
 
-## Roadmap Tecnico
+## Status do projeto
 
-Com base nos documentos `SPEC.md`, `DESIGN.md`, `TASKS.md` e no diagnostico da pasta `RPI`, os proximos passos principais sao:
+A base atual ja possui fundamentos funcionais de RAG documental. A evolucao
+principal e tornar o catalogo de solucoes um dominio de primeira classe, com
+schema proprio, indexacao separada, ranking orientado a problemas, respostas
+diagnosticas e criterios de avaliacao mais fortes.
 
-1. Expandir o schema de `solucao_piloto` com sintomas, causa raiz, pre-condicoes, passos, riscos e restricoes.
-2. Consolidar `bbsia/domain/catalogo/data/solucoes_piloto.json` como fonte curada de solucoes.
-3. Separar a indexacao de documentos e solucoes em colecoes/indices distintos.
-4. Parametrizar o retriever para consultar documentos, solucoes ou ambos.
-5. Refatorar o pipeline para detectar intencao de diagnostico.
-6. Ajustar prompts para respostas estruturadas e conservadoras.
-7. Ampliar testes e benchmarks com perguntas de problema e solucoes esperadas.
+## Documentacao
 
-## Principios de Resposta
-
-O chatbot deve:
-
-- responder em portugues;
-- usar somente evidencias recuperadas;
-- citar fontes quando aplicavel;
-- diferenciar evidencias documentais de solucoes candidatas;
-- evitar recomendacoes inventadas;
-- pedir mais informacoes quando o problema estiver subespecificado;
-- retornar um fallback seguro quando nao houver solucao validada no catalogo.
-
-## Status
-
-A base atual ja possui fundamentos funcionais de RAG documental. A principal evolucao arquitetural em aberto e tornar o catalogo de solucoes um dominio de primeira classe, com schema proprio, indexacao separada, ranking orientado a problemas e contrato de resposta estruturado.
+- [Backend BBSIA](documentation/backend-bbsia.md)
+- [Referencia da API](documentation/api-reference.md)
+- [Operacao local](documentation/operacao-local.md)
