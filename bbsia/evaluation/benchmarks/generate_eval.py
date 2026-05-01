@@ -86,4 +86,4 @@ Responda APENAS no formato JSON abaixo, sem explicações:
     print(f"\nDataset de avaliação salvo em: {output_path}")
 
 if __name__ == "__main__":
-    generate_eval_dataset("data/chunks.json", "benchmarks/eval_dataset.json", num_samples=15)
+    generate_eval_dataset("data/chunks.json", "bbsia/evaluation/benchmarks/eval_dataset.json", num_samples=15)

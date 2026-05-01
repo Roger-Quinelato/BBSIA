@@ -5,25 +5,23 @@ Executa queries representativas contra a base vetorial, mede qualidade do
 retrieval e sugere um valor para MIN_DENSE_SCORE_PERCENT.
 
 Uso:
-    python scripts/calibrar_threshold.py
+    python -m bbsia.cli.calibrar_threshold
 """
 
 from __future__ import annotations
 
 import json
 import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Garante que o diretorio raiz do projeto esteja no path.
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
-sys.path.insert(0, PROJECT_DIR)
+from bbsia.rag.retrieval.retriever import calibrate_dense_threshold
 
-from bbsia.rag.retrieval.retriever import calibrate_dense_threshold  # noqa: E402
+PROJECT_DIR = Path(__file__).resolve().parents[2]
 
-DEFAULT_OUTPUT_PATH = Path(PROJECT_DIR) / "benchmarks" / "results" / "threshold_calibration_latest.json"
+DEFAULT_OUTPUT_PATH = (
+    Path(PROJECT_DIR) / "bbsia" / "evaluation" / "benchmarks" / "results" / "threshold_calibration_latest.json"
+)
 CURRENT_THRESHOLD_PERCENT = int(os.getenv("MIN_DENSE_SCORE_PERCENT", "18"))
 
 QUERIES_DE_TESTE = [
@@ -70,7 +68,7 @@ def run_calibration(output_path: str | os.PathLike[str] = DEFAULT_OUTPUT_PATH) -
     )
     payload["calibracao"] = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "script": "scripts/calibrar_threshold.py",
+            "script": "bbsia.cli.calibrar_threshold",
         "query_count": len(QUERIES_DE_TESTE),
         "top_k": 5,
         "threshold_atual_percent": CURRENT_THRESHOLD_PERCENT,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from bbsia.rag.retrieval from bbsia.rag.retrieval import retriever
+from bbsia.rag.retrieval import retriever
 from bbsia.infrastructure.vector_store import COLLECTION_NAME, COLLECTION_SOLUTIONS
 
 

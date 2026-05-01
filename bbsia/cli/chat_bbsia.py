@@ -98,7 +98,7 @@ def _solution_inventory() -> list[dict[str, Any]]:
     for chunk in chunks:
         if not isinstance(chunk, dict):
             continue
-        documento = str(chunk.get("documento") or "catalogo/solucoes_piloto.json")
+        documento = str(chunk.get("documento") or "bbsia/domain/catalogo/data/solucoes_piloto.json")
         docs[documento]["documento"] = documento
         docs[documento]["chunks"] += 1
         if not docs[documento]["titulo"]:

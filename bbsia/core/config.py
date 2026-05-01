@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = Path(__file__).resolve().parents[2]
 ENV_FILE = BASE_DIR / ".env"
 
 

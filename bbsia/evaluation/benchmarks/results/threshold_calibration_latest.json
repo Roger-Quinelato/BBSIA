@@ -506,7 +506,7 @@
   ],
   "calibracao": {
     "generated_at_utc": "2026-04-29T01:53:53.315623+00:00",
-    "script": "scripts/calibrar_threshold.py",
+    "script": "bbsia.cli.calibrar_threshold",
     "query_count": 15,
     "top_k": 5,
     "threshold_atual_percent": 18,

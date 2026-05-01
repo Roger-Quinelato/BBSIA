@@ -12,10 +12,11 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-BASE_DIR = Path(__file__).resolve().parents[3]
-SCHEMA_FILE = BASE_DIR / "schemas" / "solucao_piloto.schema.json"
-CATALOGO_FILE = BASE_DIR / "catalogo" / "solucoes_piloto.json"
-OUTPUT_CHUNKS_FILE = BASE_DIR / "data" / "solucoes_piloto_chunks.json"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+CATALOGO_DIR = Path(__file__).resolve().parent
+SCHEMA_FILE = CATALOGO_DIR / "schemas" / "solucao_piloto.schema.json"
+CATALOGO_FILE = CATALOGO_DIR / "data" / "solucoes_piloto.json"
+OUTPUT_CHUNKS_FILE = REPO_ROOT / "data" / "solucoes_piloto_chunks.json"
 
 
 def load_schema(schema_path: Path = SCHEMA_FILE) -> dict[str, Any]:
@@ -87,7 +88,7 @@ def catalog_to_chunks(catalog: list[dict[str, Any]]) -> list[dict[str, Any]]:
             {
                 "id": idx,
                 "solution_id": solution["id"],
-                "documento": f"catalogo/solucoes_piloto.json#{solution['id']}",
+                "documento": f"bbsia/domain/catalogo/data/solucoes_piloto.json#{solution['id']}",
                 "pagina": None,
                 "area": solution["area"],
                 "assuntos": sorted(set([solution["area"], solution["status"], *solution["tecnologias"]])),

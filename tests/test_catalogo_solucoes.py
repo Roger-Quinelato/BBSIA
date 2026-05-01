@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-import catalogo_solucoes as catalogo
+from bbsia.domain.catalogo import service as catalogo
 
 
 def _valid_solution() -> dict:

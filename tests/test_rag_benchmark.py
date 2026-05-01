@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from benchmarks.rag_benchmark import run_benchmark
+from bbsia.evaluation.benchmarks.rag_benchmark import run_benchmark
 
 
 def test_run_benchmark_computes_required_metrics(monkeypatch, tmp_path):
@@ -32,7 +32,10 @@ def test_run_benchmark_computes_required_metrics(monkeypatch, tmp_path):
             "resultados": [{"texto": "lgpd exige base legal"}],
         }
 
-    monkeypatch.setattr("benchmarks.rag_benchmark.rag_engine.answer_question", fake_answer_question)
+    monkeypatch.setattr(
+        "bbsia.evaluation.benchmarks.rag_benchmark.rag_engine.answer_question",
+        fake_answer_question,
+    )
 
     payload = run_benchmark(Path(dataset))
 
@@ -79,10 +82,18 @@ def test_run_benchmark_accepts_json_dataset_and_scores_solution_match(monkeypatc
         return {
             "resposta": "Diagnostico com contratos.",
             "fontes": ["catalogo"],
-            "resultados": [{"documento": "catalogo/solucoes_piloto.json#solucao-y", "texto": "contratos"}],
+            "resultados": [
+                {
+                    "documento": "bbsia/domain/catalogo/data/solucoes_piloto.json#solucao-y",
+                    "texto": "contratos",
+                }
+            ],
         }
 
-    monkeypatch.setattr("benchmarks.rag_benchmark.rag_engine.answer_question", fake_answer_question)
+    monkeypatch.setattr(
+        "bbsia.evaluation.benchmarks.rag_benchmark.rag_engine.answer_question",
+        fake_answer_question,
+    )
 
     payload = run_benchmark(dataset)
 
@@ -93,7 +104,7 @@ def test_run_benchmark_accepts_json_dataset_and_scores_solution_match(monkeypatc
 
 
 def test_eval_dataset_has_problem_queries_mapped_to_catalog_solutions():
-    dataset_path = Path("benchmarks/eval_dataset.json")
+    dataset_path = Path("bbsia/evaluation/benchmarks/eval_dataset.json")
     rows = json.loads(dataset_path.read_text(encoding="utf-8"))
     expected_solution_ids = {
         "solucao-ia-classificacao-chamados",

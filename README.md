@@ -71,23 +71,17 @@ flowchart LR
 
 ```text
 .
-|-- api.py                         # Aplicacao FastAPI
-|-- api_core.py                    # Configuracoes, schemas e utilitarios da API
-|-- pipeline.py                    # Orquestracao do RAG
-|-- retriever.py                   # Busca hibrida e reranking
-|-- generator.py                   # Integracao com Ollama
-|-- vector_store.py                # Acesso ao Qdrant local
-|-- embedding.py                   # Geracao de embeddings
-|-- chunking.py                    # Geracao de chunks
-|-- extrator_pdf_v2.py             # Extracao de conteudo de PDFs
-|-- catalogo_solucoes.py           # Logica do catalogo de solucoes piloto
-|-- routers/                       # Rotas da API
-|-- schemas/                       # Schemas JSON/Pydantic relacionados
-|-- catalogo/                      # Catalogo de solucoes piloto
+|-- bbsia/
+|   |-- app/                       # FastAPI, app principal e routers
+|   |-- cli/                       # Comandos operacionais
+|   |-- core/                      # Configuracao e recursos compartilhados
+|   |-- domain/catalogo/           # Catalogo, schema e validacao de solucoes
+|   |-- evaluation/benchmarks/     # Benchmarks, datasets e resultados
+|   |-- infrastructure/            # Integracoes tecnicas, como Qdrant
+|   `-- rag/                       # Ingestao, recuperacao, geracao e pipeline
 |-- data/                          # Dados extraidos, chunks, metadados e indice local
-|-- scripts/                       # Scripts operacionais
 |-- tests/                         # Testes automatizados
-|-- benchmarks/                    # Avaliacoes e datasets de benchmark
+|-- uploads/                       # Arquivos enviados e aprovados em runtime
 `-- RPI/                           # Especificacoes, diagnostico e materiais de planejamento
 ```
 
@@ -141,7 +135,7 @@ ollama list
 Suba a API local:
 
 ```powershell
-.\.venv\Scripts\uvicorn.exe api:app --host 0.0.0.0 --port 8000
+.\.venv\Scripts\uvicorn.exe bbsia.app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Ou use o alvo do `Makefile`:
@@ -162,7 +156,7 @@ http://localhost:8000
 - `POST /chat/stream`: resposta em streaming, quando habilitada.
 - `GET /search`: busca semantica/textual nos documentos indexados.
 - `POST /reprocessar`: reprocessa documentos e atualiza a base vetorial.
-- Endpoints administrativos e de biblioteca ficam organizados em `routers/`.
+- Endpoints administrativos e de biblioteca ficam organizados em `bbsia/app/routers/`.
 
 ## Reprocessamento e Embeddings
 
@@ -200,7 +194,7 @@ make typecheck
 Com base nos documentos `SPEC.md`, `DESIGN.md`, `TASKS.md` e no diagnostico da pasta `RPI`, os proximos passos principais sao:
 
 1. Expandir o schema de `solucao_piloto` com sintomas, causa raiz, pre-condicoes, passos, riscos e restricoes.
-2. Consolidar `catalogo/solucoes_piloto.json` como fonte curada de solucoes.
+2. Consolidar `bbsia/domain/catalogo/data/solucoes_piloto.json` como fonte curada de solucoes.
 3. Separar a indexacao de documentos e solucoes em colecoes/indices distintos.
 4. Parametrizar o retriever para consultar documentos, solucoes ou ambos.
 5. Refatorar o pipeline para detectar intencao de diagnostico.

@@ -4,10 +4,10 @@ import json
 
 from fastapi.testclient import TestClient
 
-import api
 from bbsia.app import core as api_core
-import routers.rag as rag_router
-import routers.system as system_router
+from bbsia.app import main as api
+from bbsia.app.routers import rag as rag_router
+from bbsia.app.routers import system as system_router
 
 
 def _sample_chunk() -> dict:

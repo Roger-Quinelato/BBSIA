@@ -2,9 +2,9 @@
 API REST do Chatbot RAG BBSIA.
 
 Execucao:
-  python api.py
+  python -m bbsia.app.main
 ou
-  uvicorn api:app --host 0.0.0.0 --port 8000
+  uvicorn bbsia.app.main:app --host 0.0.0.0 --port 8000
 """
 
 from __future__ import annotations
@@ -645,7 +645,7 @@ def _normalize_chunk(item: dict[str, Any]) -> dict[str, Any]:
 
 def _check_ollama() -> tuple[bool, list[str]]:
     try:
-        from rag_engine import validate_ollama_endpoint  # noqa: PLC0415
+        from bbsia.rag.engine import validate_ollama_endpoint  # noqa: PLC0415
 
         validate_ollama_endpoint()
         resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)

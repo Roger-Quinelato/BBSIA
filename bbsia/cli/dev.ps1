@@ -5,10 +5,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$python = Join-Path $PSScriptRoot "..\\.venv\\Scripts\\python.exe"
-$pip = Join-Path $PSScriptRoot "..\\.venv\\Scripts\\pip.exe"
-$uvicorn = Join-Path $PSScriptRoot "..\\.venv\\Scripts\\uvicorn.exe"
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path
+$python = Join-Path $repoRoot ".venv\\Scripts\\python.exe"
+$pip = Join-Path $repoRoot ".venv\\Scripts\\pip.exe"
+$uvicorn = Join-Path $repoRoot ".venv\\Scripts\\uvicorn.exe"
 
 Set-Location $repoRoot
 
@@ -36,11 +36,11 @@ switch ($Task) {
     break
   }
   "typecheck" {
-    & $python -m mypy api.py rag_engine.py reprocess_worker.py catalogo_solucoes.py
+    & $python -m mypy bbsia
     break
   }
   "run" {
-    & $uvicorn api:app --host 0.0.0.0 --port 8000
+    & $uvicorn bbsia.app.main:app --host 0.0.0.0 --port 8000
     break
   }
   "reprocess" {
@@ -48,7 +48,7 @@ switch ($Task) {
     break
   }
   "solucoes-embedding" {
-    & $python scripts/gerar_embeddings_solucoes.py
+    & $python -m bbsia.cli.gerar_embeddings_solucoes
     break
   }
 }

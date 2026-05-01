@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import classificador_artigo as clf
+from bbsia.rag.ingestion import classificador as clf
 
 
 def _make_span(texto: str, font_size: float = 12.0, is_bold: bool = False) -> dict:

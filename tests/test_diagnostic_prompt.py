@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from bbsia.rag.generation import generator
-import pipeline
+from bbsia.rag import pipeline
 
 
 def _solution_result() -> dict:
@@ -10,7 +10,7 @@ def _solution_result() -> dict:
         "score_dense": 0.9,
         "score_sparse": 0.1,
         "id": 1,
-        "documento": "catalogo/solucoes_piloto.json#solucao-x",
+        "documento": "bbsia/domain/catalogo/data/solucoes_piloto.json#solucao-x",
         "pagina": None,
         "area": "tecnologia",
         "assuntos": ["piloto"],

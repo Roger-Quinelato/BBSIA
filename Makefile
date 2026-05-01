@@ -21,13 +21,13 @@ format:
 	$(PYTHON) -m ruff format .
 
 typecheck:
-	$(PYTHON) -m mypy api.py rag_engine.py reprocess_worker.py catalogo_solucoes.py
+	$(PYTHON) -m mypy bbsia
 
 run:
-	$(UVICORN) api:app --host 0.0.0.0 --port 8000
+	$(UVICORN) bbsia.app.main:app --host 0.0.0.0 --port 8000
 
 reprocess:
 	curl -X POST http://localhost:8000/reprocessar
 
 solucoes-embedding:
-	$(PYTHON) scripts/gerar_embeddings_solucoes.py
+	$(PYTHON) -m bbsia.cli.gerar_embeddings_solucoes

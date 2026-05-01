@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-import scripts.calibrar_threshold as calibrar_threshold
+from bbsia.cli import calibrar_threshold
 
 
 def test_run_calibration_writes_auditable_output(monkeypatch, tmp_path):
@@ -25,17 +25,12 @@ def test_run_calibration_writes_auditable_output(monkeypatch, tmp_path):
     }
 
     output_path = tmp_path / "threshold_calibration_latest.json"
-    legacy_path = tmp_path / "resultados_calibracao.json"
-
     monkeypatch.setattr(calibrar_threshold, "calibrate_dense_threshold", lambda queries, top_k=5: payload)
-    monkeypatch.setattr(calibrar_threshold, "LEGACY_OUTPUT_PATH", legacy_path)
     result = calibrar_threshold.run_calibration(output_path)
 
     saved = json.loads(output_path.read_text(encoding="utf-8"))
-    legacy = json.loads(legacy_path.read_text(encoding="utf-8"))
 
     assert result["calibracao"]["threshold_adotado_percent"] == calibrar_threshold.CURRENT_THRESHOLD_PERCENT
     assert result["calibracao"]["recomendacao_status"] == "acionavel"
     assert saved["estatisticas"]["threshold_sugerido_percent"] == 31
     assert saved["calibracao"]["query_count"] == len(calibrar_threshold.QUERIES_DE_TESTE)
-    assert legacy == saved

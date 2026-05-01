@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from bbsia.rag.retrieval from bbsia.rag.retrieval import retriever
+from bbsia.rag.retrieval import retriever
 from bbsia.rag.retrieval.query_planning import plan_query
 from bbsia.rag.engine import _filter_ids
 

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import rag_engine
+from bbsia.rag import engine as rag_engine
 
 
 TOKEN_RE = re.compile(r"\b[\w\-]{2,}\b", re.IGNORECASE)
@@ -192,13 +192,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Benchmark de qualidade RAG (context recall, faithfulness, answer relevancy)")
     parser.add_argument(
         "--dataset",
-        default="benchmarks/datasets/rag_eval_dataset.jsonl",
+        default="bbsia/evaluation/benchmarks/datasets/rag_eval_dataset.jsonl",
         help="Caminho do dataset JSONL",
     )
     parser.add_argument(
         "--output",
         default="",
-        help="Arquivo de saida JSON. Se vazio, usa benchmarks/results/rag_benchmark_<timestamp>.json",
+        help="Arquivo de saida JSON. Se vazio, usa bbsia/evaluation/benchmarks/results/rag_benchmark_<timestamp>.json",
     )
     args = parser.parse_args()
 
@@ -212,7 +212,7 @@ def main() -> None:
         out_path = Path(args.output)
     else:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        out_path = Path("benchmarks/results") / f"rag_benchmark_{timestamp}.json"
+        out_path = Path("bbsia/evaluation/benchmarks/results") / f"rag_benchmark_{timestamp}.json"
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

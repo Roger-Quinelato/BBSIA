@@ -2,9 +2,9 @@
 API REST do Chatbot RAG BBSIA.
 
 Execucao:
-  python api.py
+  python -m bbsia.app.main
 ou
-  uvicorn api:app --host 0.0.0.0 --port 8000
+  uvicorn bbsia.app.main:app --host 0.0.0.0 --port 8000
 """
 
 from bbsia.app.core import app
