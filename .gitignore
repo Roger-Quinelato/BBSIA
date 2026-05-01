@@ -18,3 +18,10 @@ textos_extraidos_v2.txt
 
 # Logs temporarios
 *.log
+
+# Pastas de Skill e Ferramentas
+.claude/
+.codex/
+.agente/
+.windsurff/
+docs/
