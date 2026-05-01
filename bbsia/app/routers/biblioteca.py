@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from bbsia.app.core import carregar_biblioteca
+from bbsia.domain.document_library.service import carregar_biblioteca
 
 router = APIRouter(prefix="", tags=["Biblioteca"])
 

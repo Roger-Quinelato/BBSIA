@@ -24,7 +24,7 @@ typecheck:
 	$(PYTHON) -m mypy bbsia
 
 run:
-	$(UVICORN) bbsia.app.main:app --host 0.0.0.0 --port 8000
+	$(UVICORN) bbsia.app.bootstrap.main:app --host 0.0.0.0 --port 8000
 
 reprocess:
 	curl -X POST http://localhost:8000/reprocessar

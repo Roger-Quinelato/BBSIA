@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from bbsia.rag import engine as rag_engine
+from bbsia.rag.public_api import engine as rag_engine
 
 
 TOKEN_RE = re.compile(r"\b[\w\-]{2,}\b", re.IGNORECASE)

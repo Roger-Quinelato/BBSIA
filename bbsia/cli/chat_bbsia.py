@@ -184,7 +184,7 @@ def run_search(pergunta: str, top_k: int, area: str, assunto: str, show_chunks: 
 
 
 def run_answer(pergunta: str, model: str, top_k: int, area: str, assunto: str, show_chunks: bool) -> None:
-    from bbsia.rag.pipeline import answer_question
+    from bbsia.rag.orchestration.pipeline import answer_question
 
     payload = answer_question(
         pergunta=pergunta,

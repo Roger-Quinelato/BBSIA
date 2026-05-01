@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 
 from bbsia.domain.catalogo.service import OUTPUT_CHUNKS_FILE, materialize_solution_chunks
+from bbsia.infrastructure.vector_store import solution_collection_name
 from bbsia.rag.ingestion.embedding import run_embedding
 
 
@@ -19,7 +20,7 @@ def main() -> None:
     embedding_result = run_embedding(
         chunks_file=str(OUTPUT_CHUNKS_FILE),
         index_dir="data/solucoes_qdrant_metadata",
-        collection_name="bbsia_solucoes",
+        collection_name=solution_collection_name(),
     )
     print(json.dumps({"catalogo": materialized, "embedding": embedding_result}, ensure_ascii=False, indent=2))
 

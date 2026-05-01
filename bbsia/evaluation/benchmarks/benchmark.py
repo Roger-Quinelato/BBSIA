@@ -8,7 +8,7 @@ from ragas import evaluate
 from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
 
 from bbsia.rag.generation.generator import DEFAULT_LLM_MODEL, OLLAMA_URL
-from bbsia.rag.pipeline import answer_question
+from bbsia.rag.orchestration.pipeline import answer_question
 
 llm = ChatOllama(model=DEFAULT_LLM_MODEL, base_url=OLLAMA_URL)
 embeddings = HuggingFaceEmbeddings(

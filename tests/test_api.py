@@ -4,8 +4,7 @@ import json
 
 from fastapi.testclient import TestClient
 
-from bbsia.app import core as api_core
-from bbsia.app import main as api
+from bbsia.app.bootstrap import main as api
 from bbsia.app.routers import rag as rag_router
 from bbsia.app.routers import system as system_router
 
@@ -42,7 +41,7 @@ def _build_client(monkeypatch) -> TestClient:
     monkeypatch.setattr(system_router, "list_available_assuntos", lambda: ["RAG", "kubernetes"])
     monkeypatch.setattr(system_router, "_check_ollama", lambda: (True, ["qwen3.5:7b-instruct"]))
 
-    monkeypatch.setattr(api_core, "search", lambda query, top_k, filtro_area, filtro_assunto: [_sample_chunk()])
+    monkeypatch.setattr(rag_router, "search", lambda query, top_k, filtro_area, filtro_assunto: [_sample_chunk()])
     monkeypatch.setattr(rag_router, "cache_health", lambda load_if_empty=False: {"resources_cached": True, "total_chunks": 2})
 
     async def _fake_stream(**kwargs):

@@ -78,8 +78,15 @@ def _extractive_fallback_answer(pergunta: str, results: list[dict], error: Excep
         + f"Observacao tecnica: a geracao pelo LLM local falhou ({error})."
     )
 
-from bbsia.rag.retrieval.retriever import search, _build_context, _format_citation_label, MIN_DENSE_SCORE_FOR_ANSWER, DEFAULT_TOP_K
-from bbsia.infrastructure.vector_store import COLLECTION_NAME, COLLECTION_SOLUTIONS
+from bbsia.rag.retrieval.retriever import (
+    DEFAULT_TOP_K,
+    MIN_DENSE_SCORE_FOR_ANSWER,
+    RETRIEVAL_DOMAIN_DOCUMENTS,
+    RETRIEVAL_DOMAIN_SOLUTIONS,
+    build_context,
+    search_domain,
+)
+from bbsia.rag.shared.sources import _format_citation_label
 from bbsia.rag.generation.generator import query_ollama, build_prompt, DEFAULT_LLM_MODEL, NO_EVIDENCE_RESPONSE, NO_SOLUTION_RESPONSE
 from bbsia.rag.generation.faithfulness import _faithfulness_check, _unique_sources
 from bbsia.rag.retrieval.reranker import RERANKER_TOP_N
@@ -134,8 +141,8 @@ def _tag_results(results: list[dict], retrieval_domain: str) -> list[dict]:
 
 
 def _build_diagnostic_context(solution_results: list[dict], document_results: list[dict]) -> str:
-    solution_context = _build_context(solution_results) if solution_results else "Nenhuma solucao candidata encontrada."
-    document_context = _build_context(document_results) if document_results else "Nenhuma evidencia documental encontrada."
+    solution_context = build_context(solution_results) if solution_results else "Nenhuma solucao candidata encontrada."
+    document_context = build_context(document_results) if document_results else "Nenhuma evidencia documental encontrada."
     return (
         "--- SOLUCOES CANDIDATAS ---\n"
         f"{solution_context}\n\n"
@@ -151,37 +158,38 @@ def _retrieve_for_answer(
     filtro_assunto: str | Iterable[str] | None,
 ) -> tuple[list[dict], list[dict], str | None, bool]:
     if not _is_diagnostic_query(pergunta):
-        results = search(
+        results = search_domain(
             query=pergunta,
             top_k=top_k,
             filtro_area=filtro_area,
             filtro_assunto=filtro_assunto,
+            retrieval_domain=RETRIEVAL_DOMAIN_DOCUMENTS,
         )
         context_results = results[: min(MAX_CONTEXT_CHUNKS, RERANKER_TOP_N)]
-        context = _build_context(context_results) if context_results else None
+        context = build_context(context_results) if context_results else None
         return results, context_results, context, False
 
     solution_top_k = max(1, min(top_k, MAX_CONTEXT_CHUNKS))
     document_top_k = max(1, top_k)
     solution_results = _tag_results(
-        search(
+        search_domain(
             query=pergunta,
             top_k=solution_top_k,
             filtro_area=filtro_area,
             filtro_assunto=filtro_assunto,
-            target_collection=COLLECTION_SOLUTIONS,
+            retrieval_domain=RETRIEVAL_DOMAIN_SOLUTIONS,
         ),
-        "solucoes",
+        RETRIEVAL_DOMAIN_SOLUTIONS,
     )
     document_results = _tag_results(
-        search(
+        search_domain(
             query=pergunta,
             top_k=document_top_k,
             filtro_area=filtro_area,
             filtro_assunto=filtro_assunto,
-            target_collection=COLLECTION_NAME,
+            retrieval_domain=RETRIEVAL_DOMAIN_DOCUMENTS,
         ),
-        "documentos",
+        RETRIEVAL_DOMAIN_DOCUMENTS,
     )
 
     solution_context_results = solution_results[: min(MAX_CONTEXT_CHUNKS, RERANKER_TOP_N)]
@@ -193,7 +201,7 @@ def _retrieve_for_answer(
 
 
 def _has_catalog_solution(results: list[dict]) -> bool:
-    return any(item.get("retrieval_domain") == "solucoes" for item in results)
+    return any(item.get("retrieval_domain") == RETRIEVAL_DOMAIN_SOLUTIONS for item in results)
 
 
 def _llm_declined_with_available_context(resposta: str) -> bool:
@@ -241,7 +249,7 @@ def answer_question(
         }
 
     if context is None:
-        context = _build_context(context_results)
+        context = build_context(context_results)
     prompt = build_prompt(pergunta=pergunta, context=context, history=history, diagnostic_mode=is_diagnostic)
     try:
         resposta = query_ollama(prompt=prompt, model=model)
@@ -304,7 +312,7 @@ async def answer_question_stream(
         return
 
     if context is None:
-        context = _build_context(context_results)
+        context = build_context(context_results)
     prompt = build_prompt(pergunta=pergunta, context=context, history=history, diagnostic_mode=is_diagnostic)
 
     yield {

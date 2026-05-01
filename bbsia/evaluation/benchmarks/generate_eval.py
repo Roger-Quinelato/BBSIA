@@ -1,25 +1,8 @@
 import json
 import random
 import os
-import requests
-from typing import List, Dict
 
-# Configurações do Ollama (reutilizando lógica do generator.py)
-OLLAMA_URL = "http://localhost:11434"
-DEFAULT_MODEL = "qwen3.5:7b-instruct"
-
-def query_ollama(prompt: str, model: str = DEFAULT_MODEL) -> str:
-    response = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "options": {"temperature": 0.3}
-        }
-    )
-    response.raise_for_status()
-    return response.json().get("response", "").strip()
+from bbsia.rag.generation.generator import query_ollama
 
 def generate_eval_dataset(chunks_path: str, output_path: str, num_samples: int = 10):
     if not os.path.exists(chunks_path):

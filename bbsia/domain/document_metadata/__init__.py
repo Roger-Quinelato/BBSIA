@@ -1,0 +1,1 @@
+"""Metadados compartilhados de documentos."""

@@ -4,7 +4,6 @@ import numpy as np
 
 from bbsia.rag.retrieval import retriever
 from bbsia.rag.retrieval.query_planning import plan_query
-from bbsia.rag.engine import _filter_ids
 
 
 def test_filter_ids_by_area_and_assunto():
@@ -14,10 +13,10 @@ def test_filter_ids_by_area_and_assunto():
         {"area": "arquitetura", "assuntos": ["rag", "chatbot"]},
     ]
 
-    assert _filter_ids(chunks, filtro_area=["infraestrutura"]) == [0]
-    assert _filter_ids(chunks, filtro_assunto=["LGPD"]) == [1]
-    assert _filter_ids(chunks, filtro_area=["arquitetura"], filtro_assunto=["chatbot"]) == [2]
-    assert _filter_ids(chunks, filtro_area=["metodologia"]) == []
+    assert retriever._filter_ids(chunks, filtro_area=["infraestrutura"]) == [0]
+    assert retriever._filter_ids(chunks, filtro_assunto=["LGPD"]) == [1]
+    assert retriever._filter_ids(chunks, filtro_area=["arquitetura"], filtro_assunto=["chatbot"]) == [2]
+    assert retriever._filter_ids(chunks, filtro_area=["metodologia"]) == []
 
 
 def test_plan_query_infers_area():

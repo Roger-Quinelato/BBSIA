@@ -1,0 +1,1 @@
+"""Seguranca HTTP da API."""

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from bbsia.rag.generation import generator
-from bbsia.rag import pipeline
+from bbsia.rag.orchestration import pipeline
 
 
 def _solution_result() -> dict:

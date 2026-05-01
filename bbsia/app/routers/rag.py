@@ -1,22 +1,19 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
 import json
 
-from bbsia.app.core import (
-    ChatRequest,
-    SearchRequest,
-    SearchResponse,
-    _CONVERSATION_HISTORY,
-    _CONVERSATION_LOCK,
-    _normalize_chunk,
-    _raise_http_exception,
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
+
+from bbsia.app.contracts.schemas import ChatRequest, SearchRequest, SearchResponse
+from bbsia.app.runtime.http import _normalize_chunk, _raise_http_exception
+from bbsia.app.runtime.state import _CONVERSATION_HISTORY, _CONVERSATION_LOCK, DEFAULT_MODEL
+from bbsia.rag.public_api.engine import (
     answer_question_stream,
     cache_health,
     list_available_areas,
     list_available_assuntos,
     list_ollama_models,
+    search,
     validate_ollama_model,
-    DEFAULT_MODEL,
 )
 
 router = APIRouter(prefix="", tags=["RAG"])
@@ -68,8 +65,6 @@ async def chat(payload: ChatRequest) -> StreamingResponse:
 @router.post("/search", response_model=SearchResponse)
 def semantic_search(payload: SearchRequest) -> SearchResponse:
     try:
-        from bbsia.app.core import search
-
         resultados = search(
             query=payload.query,
             top_k=payload.top_k,

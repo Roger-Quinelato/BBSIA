@@ -3,7 +3,7 @@ from __future__ import annotations
 import requests
 
 from bbsia.rag.generation import faithfulness
-from bbsia.rag import pipeline
+from bbsia.rag.orchestration import pipeline
 from bbsia.rag.retrieval import retriever
 
 

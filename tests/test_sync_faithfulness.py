@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from bbsia.rag import pipeline
+from bbsia.rag.orchestration import pipeline
 
 
 def _sample_results() -> list[dict]:

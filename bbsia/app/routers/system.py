@@ -3,12 +3,10 @@ from typing import Any
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
 
-from bbsia.app.core import (
-    API_VERSION,
-    RAG_HEALTH_LOAD_ON_STATUS,
-    WEB_DIR,
-    _check_ollama,
-    _reprocess_manager,
+from bbsia.app.runtime.http import _check_ollama
+from bbsia.app.runtime.reprocess import _reprocess_manager
+from bbsia.app.runtime.state import API_VERSION, RAG_HEALTH_LOAD_ON_STATUS, WEB_DIR
+from bbsia.rag.public_api.engine import (
     cache_health,
     list_available_areas,
     list_available_assuntos,

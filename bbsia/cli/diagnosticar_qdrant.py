@@ -17,8 +17,9 @@ try:
 except AttributeError:
     pass
 
-from bbsia.rag.retrieval.retriever import DATA_DIR, search  # noqa: E402
-from bbsia.infrastructure.vector_store import COLLECTION_NAME, get_local_qdrant_client  # noqa: E402
+from bbsia.core.config import BASE_DIR  # noqa: E402
+from bbsia.infrastructure.vector_store import document_collection_name, get_local_qdrant_client  # noqa: E402
+from bbsia.rag.retrieval.retriever import search  # noqa: E402
 
 
 def _load_json(path: Path) -> dict:
@@ -26,14 +27,15 @@ def _load_json(path: Path) -> dict:
 
 
 def run_diagnostics() -> dict:
-    data_dir = Path(DATA_DIR)
+    data_dir = BASE_DIR / "data"
+    collection_name = document_collection_name()
     metadata_path = data_dir / "qdrant_index_metadata" / "metadata.json"
     manifest_path = data_dir / "qdrant_index_metadata" / "manifest.json"
 
     checks: dict[str, object] = {
         "metadata_exists": metadata_path.exists(),
         "manifest_exists": manifest_path.exists(),
-        "collection": COLLECTION_NAME,
+        "collection": collection_name,
     }
 
     if not metadata_path.exists():
@@ -45,18 +47,18 @@ def run_diagnostics() -> dict:
     metadata_total = int(metadata.get("total_chunks") or len(metadata.get("chunks") or []))
     checks["metadata_total_chunks"] = metadata_total
 
-    client = get_local_qdrant_client(DATA_DIR)
+    client = get_local_qdrant_client(str(data_dir))
     try:
-        collection_exists = bool(client.collection_exists(COLLECTION_NAME))
+        collection_exists = bool(client.collection_exists(collection_name))
         checks["collection_exists"] = collection_exists
         if not collection_exists:
-            raise RuntimeError(f"Colecao Qdrant ausente: {COLLECTION_NAME}")
+            raise RuntimeError(f"Colecao Qdrant ausente: {collection_name}")
 
-        point_count = int(client.count(collection_name=COLLECTION_NAME, exact=True).count)
+        point_count = int(client.count(collection_name=collection_name, exact=True).count)
         checks["point_count"] = point_count
         checks["count_matches_metadata"] = point_count == metadata_total
         if point_count <= 0:
-            raise RuntimeError(f"Colecao Qdrant vazia: {COLLECTION_NAME}")
+            raise RuntimeError(f"Colecao Qdrant vazia: {collection_name}")
         if point_count != metadata_total:
             raise RuntimeError(
                 f"Contagem Qdrant inconsistente: pontos={point_count}; metadata_total_chunks={metadata_total}"

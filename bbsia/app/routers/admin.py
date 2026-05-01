@@ -1,33 +1,36 @@
 import logging
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-import shutil
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
-from bbsia.app.core import (
+from bbsia.app.contracts.schemas import UploadMetadataRequest
+from bbsia.app.runtime.audit import _audit_event, _record_event
+from bbsia.app.runtime.http import _raise_http_exception
+from bbsia.app.runtime.reprocess import _reprocess_manager
+from bbsia.app.runtime.state import (
     BASE_DIR,
     MAX_UPLOAD_SIZE_MB,
     UPLOAD_QUARANTINE_DIR,
-    UploadMetadataRequest,
-    _audit_event,
+)
+from bbsia.app.uploads_service.service import (
     _metadata_key_for_stored_filename,
-    _reprocess_manager,
     _resolve_quarantine_source_path,
     _safe_approved_path,
     _safe_quarantine_path,
     _sha256_bytes,
-    _record_event,
-    _raise_http_exception,
-    load_upload_metadata,
-    normalize_upload_doc_name,
-    reload_resources,
-    save_upload_metadata,
-    update_upload_metadata_entry,
     validate_pdf_upload,
 )
+from bbsia.domain.document_metadata.service import (
+    load_upload_metadata,
+    normalize_upload_doc_name,
+    save_upload_metadata,
+    update_upload_metadata_entry,
+)
+from bbsia.rag.public_api.engine import reload_resources
 
 router = APIRouter(prefix="", tags=["Admin", "Upload"])
 

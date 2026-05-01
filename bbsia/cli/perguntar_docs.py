@@ -52,7 +52,7 @@ def _print_search(pergunta: str, top_k: int, filtro_area: list[str], filtro_assu
 
 
 def _print_answer(pergunta: str, top_k: int, filtro_area: list[str], filtro_assunto: list[str]) -> None:
-    from bbsia.rag.pipeline import answer_question
+    from bbsia.rag.orchestration.pipeline import answer_question
 
     payload = answer_question(
         pergunta=pergunta,

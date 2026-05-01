@@ -40,7 +40,7 @@ switch ($Task) {
     break
   }
   "run" {
-    & $uvicorn bbsia.app.main:app --host 0.0.0.0 --port 8000
+    & $uvicorn bbsia.app.bootstrap.main:app --host 0.0.0.0 --port 8000
     break
   }
   "reprocess" {

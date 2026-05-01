@@ -11,6 +11,7 @@ import requests
 
 from bbsia.core.config import get_env_bool, get_env_int, get_env_list, get_env_str
 from bbsia.rag.retrieval.query_planning import plan_query
+from bbsia.rag.shared.sources import _format_citation_label, _format_source_label
 from bbsia.infrastructure.vector_store import dense_ranked_candidates, get_local_qdrant_client, vector_store_health, COLLECTION_NAME, COLLECTION_SOLUTIONS
 
 """
@@ -57,6 +58,12 @@ RRF_K = get_env_int("RRF_K", 60, min_value=1, max_value=200)
 PRELOAD_RAG_ON_STARTUP = get_env_bool("PRELOAD_RAG_ON_STARTUP", True)
 PRELOAD_RERANKER_ON_STARTUP = get_env_bool("PRELOAD_RERANKER_ON_STARTUP", False)
 ENABLE_QUERY_PLANNING = get_env_bool("ENABLE_QUERY_PLANNING", False)
+RETRIEVAL_DOMAIN_DOCUMENTS = "documentos"
+RETRIEVAL_DOMAIN_SOLUTIONS = "solucoes"
+_COLLECTION_BY_RETRIEVAL_DOMAIN = {
+    RETRIEVAL_DOMAIN_DOCUMENTS: COLLECTION_NAME,
+    RETRIEVAL_DOMAIN_SOLUTIONS: COLLECTION_SOLUTIONS,
+}
 
 HF_LOCAL_FILES_ONLY = get_env_bool("HF_LOCAL_FILES_ONLY", True)
 E5_QUERY_PREFIX = "query: "
@@ -647,47 +654,6 @@ def search(
         
     return all_results
 
-def _format_source_label(item: dict) -> str:
-    """Gera rótulo acadêmico: 'Sobrenome, Ano — Título' quando disponível."""
-    autores = item.get("doc_autores", [])
-    ano = item.get("doc_ano")
-    titulo = item.get("doc_titulo", "")
-    documento = item.get("documento", "desconhecido")
-
-    if autores and isinstance(autores, list) and autores[0]:
-        # Usa último sobrenome do primeiro autor
-        primeiro_autor = autores[0].strip()
-        partes_nome = primeiro_autor.split()
-        sobrenome = partes_nome[-1] if partes_nome else primeiro_autor
-        label = sobrenome
-        if ano:
-            label += f", {ano}"
-        if titulo:
-            label += f' — "{titulo}"'
-        return label
-
-    # Fallback: nome do arquivo sem extensão
-    import os
-    nome_base = os.path.splitext(os.path.basename(documento))[0]
-    if ano:
-        return f"{nome_base} ({ano})"
-    return nome_base
-
-def _format_citation_label(item: dict) -> str:
-    autores = item.get("doc_autores", [])
-    ano = item.get("doc_ano") or "s.d."
-
-    if autores and isinstance(autores, list) and autores[0]:
-        primeiro_autor = str(autores[0]).strip()
-        partes_nome = primeiro_autor.split()
-        sobrenome = partes_nome[-1] if partes_nome else primeiro_autor
-    else:
-        documento = str(item.get("documento", "documento"))
-        sobrenome = os.path.splitext(os.path.basename(documento))[0]
-
-    sobrenome = re.sub(r"\s+", " ", sobrenome).strip() or "Documento"
-    return f"{sobrenome}, {ano}"
-
 def _build_context(results: list[dict]) -> str:
     parts = []
     for i, item in enumerate(results, start=1):
@@ -714,6 +680,34 @@ def _build_context(results: list[dict]) -> str:
             )
         )
     return "\n\n".join(parts)
+
+
+def build_context(results: list[dict]) -> str:
+    return _build_context(results)
+
+
+def _collection_for_retrieval_domain(retrieval_domain: str) -> str:
+    try:
+        return _COLLECTION_BY_RETRIEVAL_DOMAIN[retrieval_domain]
+    except KeyError as exc:
+        allowed = ", ".join(sorted(_COLLECTION_BY_RETRIEVAL_DOMAIN))
+        raise ValueError(f"Dominio de recuperacao invalido: {retrieval_domain}. Permitidos: {allowed}") from exc
+
+
+def search_domain(
+    query: str,
+    top_k: int = DEFAULT_TOP_K,
+    filtro_area: str | Iterable[str] | None = None,
+    filtro_assunto: str | Iterable[str] | None = None,
+    retrieval_domain: str = RETRIEVAL_DOMAIN_DOCUMENTS,
+) -> list[dict]:
+    return search(
+        query=query,
+        top_k=top_k,
+        filtro_area=filtro_area,
+        filtro_assunto=filtro_assunto,
+        target_collection=_collection_for_retrieval_domain(retrieval_domain),
+    )
 
 def _percentile(values: list[float], percentile: float) -> float:
     if not values:

@@ -72,13 +72,24 @@ flowchart LR
 ```text
 .
 |-- bbsia/
-|   |-- app/                       # FastAPI, app principal e routers
+|   |-- app/
+|   |   |-- bootstrap/             # Ponto de entrada FastAPI
+|   |   |-- contracts/             # Schemas Pydantic da API
+|   |   |-- routers/               # Endpoints HTTP
+|   |   |-- runtime/               # App, estado, auditoria e reprocessamento
+|   |   |-- security/              # Autenticacao e rate limit
+|   |   `-- uploads_service/       # Upload, quarentena e validacao de PDFs
 |   |-- cli/                       # Comandos operacionais
 |   |-- core/                      # Configuracao e recursos compartilhados
 |   |-- domain/catalogo/           # Catalogo, schema e validacao de solucoes
 |   |-- evaluation/benchmarks/     # Benchmarks, datasets e resultados
 |   |-- infrastructure/            # Integracoes tecnicas, como Qdrant
-|   `-- rag/                       # Ingestao, recuperacao, geracao e pipeline
+|   `-- rag/
+|       |-- generation/            # Prompts, Ollama e faithfulness
+|       |-- ingestion/             # Extracao, chunking e embeddings
+|       |-- orchestration/         # Pipeline RAG
+|       |-- public_api/            # Fachada interna do motor RAG
+|       `-- retrieval/             # Busca hibrida, reranker e query planning
 |-- data/                          # Dados extraidos, chunks, metadados e indice local
 |-- tests/                         # Testes automatizados
 |-- uploads/                       # Arquivos enviados e aprovados em runtime
@@ -135,7 +146,7 @@ ollama list
 Suba a API local:
 
 ```powershell
-.\.venv\Scripts\uvicorn.exe bbsia.app.main:app --host 0.0.0.0 --port 8000
+.\.venv\Scripts\uvicorn.exe bbsia.app.bootstrap.main:app --host 0.0.0.0 --port 8000
 ```
 
 Ou use o alvo do `Makefile`:

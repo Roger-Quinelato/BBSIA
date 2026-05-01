@@ -21,6 +21,7 @@ import fitz  # PyMuPDF
 from pydantic import BaseModel, Field
 
 from bbsia.core.config import get_env_str
+from bbsia.domain.document_library.service import BIBLIOTECA_FILE, atualizar_biblioteca
 
 # ---------------------------------------------------------------------------
 # Configuração
@@ -31,8 +32,6 @@ CLASSIFICADOR_MODEL = get_env_str("CLASSIFICADOR_MODEL", get_env_str("DEFAULT_MO
 
 _REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 BASE_DIR = _REPO_ROOT
-DATA_DIR = os.path.join(BASE_DIR, "data")
-BIBLIOTECA_FILE = os.path.join(DATA_DIR, "biblioteca.json")
 
 AREAS_VALIDAS = {"ia", "saude", "infraestrutura", "juridico", "tecnologia", "geral"}
 TIPOS_VALIDOS = {"artigo_cientifico", "relatorio_tecnico", "manual", "apresentacao", "outro"}
@@ -948,52 +947,6 @@ def classificar_de_payload(
         metadado = enriquecer_com_llm(metadado)
 
     return metadado
-
-
-# ---------------------------------------------------------------------------
-# Catálogo persistente: data/biblioteca.json
-# ---------------------------------------------------------------------------
-
-
-def carregar_biblioteca() -> dict:
-    """Carrega o catálogo de documentos, ou retorna estrutura vazia."""
-    if not os.path.exists(BIBLIOTECA_FILE):
-        return {"versao": 1, "atualizado_em": "", "documentos": []}
-
-    try:
-        with open(BIBLIOTECA_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict) and isinstance(data.get("documentos"), list):
-            return data
-    except Exception:
-        pass
-
-    return {"versao": 1, "atualizado_em": "", "documentos": []}
-
-
-def salvar_biblioteca(biblioteca: dict) -> None:
-    """Salva o catálogo no disco."""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    biblioteca["atualizado_em"] = datetime.now(timezone.utc).isoformat()
-    with open(BIBLIOTECA_FILE, "w", encoding="utf-8") as f:
-        json.dump(biblioteca, f, ensure_ascii=False, indent=2)
-
-
-def atualizar_biblioteca(metadado: MetadadoDocumento) -> None:
-    """Atualiza ou insere um documento no catálogo biblioteca.json."""
-    biblioteca = carregar_biblioteca()
-    docs = biblioteca.get("documentos", [])
-
-    # Remove entrada anterior do mesmo documento (por id ou documento_original)
-    docs = [
-        d for d in docs
-        if d.get("id") != metadado.id
-        and d.get("documento_original") != metadado.documento_original
-    ]
-
-    docs.append(metadado.model_dump())
-    biblioteca["documentos"] = docs
-    salvar_biblioteca(biblioteca)
 
 
 def classificar_e_registrar(pdf_path: str, usar_llm: bool = True) -> MetadadoDocumento:

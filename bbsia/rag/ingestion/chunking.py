@@ -14,6 +14,9 @@ import os
 import re
 from typing import Any, Iterable
 
+from bbsia.domain.document_library.service import index_document_library
+from bbsia.domain.document_metadata.service import load_upload_metadata, normalize_upload_doc_name
+
 # Parâmetros de chunking:
 # - CHILD_CHUNK_SIZE : tamanho (em palavras) dos child chunks (usados no embedding)
 # - CHILD_CHUNK_OVERLAP: sobreposição entre child chunks consecutivos
@@ -28,8 +31,6 @@ DATA_DIR = os.path.join(_REPO_ROOT, "data")
 STRUCTURED_INPUT_FILE = os.path.join(DATA_DIR, "documentos_extraidos_v2.json")
 OUTPUT_FILE = os.path.join(DATA_DIR, "chunks.json")
 PARENTS_FILE = os.path.join(DATA_DIR, "parents.json")
-UPLOAD_METADATA_FILE = os.path.join("uploads", "metadata_uploads.json")
-BIBLIOTECA_FILE = os.path.join(DATA_DIR, "biblioteca.json")
 LOGGER = logging.getLogger(__name__)
 
 CATEGORIAS_DOCUMENTOS = {}
@@ -48,47 +49,9 @@ def _script_dir() -> str:
     return _REPO_ROOT
 
 
-def load_upload_metadata(filepath: str | None = None) -> dict:
-    """Carrega metadados de uploads (area/assuntos), se existir."""
-    resolved_path = os.path.join(_script_dir(), filepath or UPLOAD_METADATA_FILE)
-    if not os.path.exists(resolved_path):
-        return {}
-
-    try:
-        with open(resolved_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
-
-def normalize_upload_doc_name(doc_name: str) -> str:
-    """Normaliza chave de documento para o padrao uploads/<arquivo.pdf>."""
-    doc = (doc_name or "").strip().replace("\\", "/")
-    if doc.startswith("uploads/"):
-        return f"uploads/{doc.split('/')[-1]}"
-    return doc
-
-
 def _load_biblioteca() -> dict:
     """Carrega o catálogo biblioteca.json indexado por nome de arquivo."""
-    path = os.path.join(_script_dir(), BIBLIOTECA_FILE)
-    if not os.path.exists(path):
-        return {}
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict) and isinstance(data.get("documentos"), list):
-            index: dict[str, dict] = {}
-            for doc in data["documentos"]:
-                orig = doc.get("documento_original", "")
-                if orig:
-                    index[orig] = doc
-                    index[os.path.basename(orig)] = doc
-            return index
-    except Exception:
-        pass
-    return {}
+    return index_document_library()
 
 
 def _is_specific_metadata(area: str, assuntos: list[str]) -> bool:

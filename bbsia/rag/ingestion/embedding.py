@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 import numpy as np
 from bbsia.core.config import get_env_bool, get_env_int, get_env_str
+from bbsia.infrastructure.vector_store import document_collection_name, get_local_qdrant_client
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -142,8 +143,10 @@ def run_embedding(
     index_dir: str | None = None,
     model_name: str = MODEL_NAME,
     batch_size: int = BATCH_SIZE,
-    collection_name: str = "bbsia_chunks",
+    collection_name: str | None = None,
 ) -> dict:
+    if collection_name is None:
+        collection_name = document_collection_name()
     if index_dir:
         # Alias legado: manter compatibilidade com chamadores antigos.
         metadata_dir = index_dir
@@ -187,11 +190,9 @@ def run_embedding(
 
     LOGGER.info("event=embedding_index_building dim=%s", dim)
     
-    qdrant_path = os.path.join(DATA_DIR, "qdrant_db")
-    from qdrant_client import QdrantClient
     from qdrant_client.models import VectorParams, Distance, PointStruct
 
-    client = QdrantClient(path=qdrant_path)
+    client = get_local_qdrant_client(DATA_DIR)
     
     if client.collection_exists(collection_name):
         client.delete_collection(collection_name)

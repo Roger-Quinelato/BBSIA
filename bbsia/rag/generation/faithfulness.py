@@ -10,7 +10,7 @@ import numpy as np
 import requests
 from bbsia.core.config import get_env_bool, get_env_int, get_env_list, get_env_str
 
-from bbsia.rag.retrieval.retriever import _format_source_label
+from bbsia.rag.shared.sources import _format_source_label
 
 def _unique_sources(results: list[dict]) -> list[str]:
     seen = set()

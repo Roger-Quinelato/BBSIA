@@ -10,6 +10,18 @@ COLLECTION_SOLUTIONS = "bbsia_solucoes"
 QDRANT_LOCAL_DIRNAME = "qdrant_db"
 
 
+def document_collection_name() -> str:
+    return COLLECTION_NAME
+
+
+def solution_collection_name() -> str:
+    return COLLECTION_SOLUTIONS
+
+
+def qdrant_local_path(data_dir: str) -> str:
+    return os.path.join(data_dir, QDRANT_LOCAL_DIRNAME)
+
+
 def _as_list(value: str | Iterable[str] | None) -> list[str]:
     if value is None:
         return []
@@ -25,8 +37,7 @@ def _norm(value: str) -> str:
 def get_local_qdrant_client(data_dir: str):
     from qdrant_client import QdrantClient
 
-    qdrant_path = os.path.join(data_dir, QDRANT_LOCAL_DIRNAME)
-    return QdrantClient(path=qdrant_path)
+    return QdrantClient(path=qdrant_local_path(data_dir))
 
 
 def dense_ranked_candidates(

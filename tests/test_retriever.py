@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from bbsia.rag.retrieval import retriever
-from bbsia.infrastructure.vector_store import COLLECTION_NAME, COLLECTION_SOLUTIONS
+from bbsia.infrastructure.vector_store import document_collection_name, solution_collection_name
+
+COLLECTION_NAME = document_collection_name()
+COLLECTION_SOLUTIONS = solution_collection_name()
 
 
 def test_search_single_collection_uses_default(monkeypatch):

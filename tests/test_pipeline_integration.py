@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from bbsia.rag import pipeline
+from bbsia.rag.orchestration import pipeline
 import respx
 from httpx import Response
 
