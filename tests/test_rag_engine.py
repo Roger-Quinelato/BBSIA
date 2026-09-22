@@ -6,7 +6,6 @@ from bbsia.rag.generation import faithfulness
 from bbsia.rag.orchestration import pipeline
 from bbsia.rag.retrieval import retriever
 
-
 def test_answer_question_uses_extractive_fallback_when_ollama_fails(monkeypatch):
     sample_results = [
         {
@@ -21,7 +20,7 @@ def test_answer_question_uses_extractive_fallback_when_ollama_fails(monkeypatch)
         }
     ]
 
-    monkeypatch.setattr(pipeline, "search", lambda *args, **kwargs: sample_results)
+    monkeypatch.setattr(retriever, "search", lambda *args, **kwargs: sample_results)
     monkeypatch.setattr(
         pipeline,
         "query_ollama",

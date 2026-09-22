@@ -6,7 +6,7 @@ import json
 from bbsia.rag.orchestration import pipeline
 import respx
 from httpx import Response
-
+from bbsia.rag.retrieval import retriever
 
 def _sample_results() -> list[dict]:
     return [
@@ -31,7 +31,7 @@ def _sample_results() -> list[dict]:
 def test_answer_question_stream_emits_metadata_and_tokens(monkeypatch):
     assert pipeline.ENABLE_STREAM_FAITHFULNESS is False
     monkeypatch.setattr(pipeline, "ENABLE_STREAM_FAITHFULNESS", False)
-    monkeypatch.setattr(pipeline, "search", lambda **kwargs: _sample_results())
+    monkeypatch.setattr(retriever, "search", lambda **kwargs: _sample_results())
 
     payload_lines = [
         json.dumps({"response": "Resposta ", "done": False}),
@@ -58,7 +58,7 @@ def test_answer_question_stream_emits_metadata_and_tokens(monkeypatch):
 
 def test_answer_question_stream_emits_faithfulness_event_when_enabled(monkeypatch):
     monkeypatch.setattr(pipeline, "ENABLE_STREAM_FAITHFULNESS", True)
-    monkeypatch.setattr(pipeline, "search", lambda **kwargs: _sample_results())
+    monkeypatch.setattr(retriever, "search", lambda **kwargs: _sample_results())
     monkeypatch.setattr(pipeline, "_faithfulness_check", lambda resposta, context: (False, "nao suportada"))
 
     payload_lines = [
@@ -88,7 +88,7 @@ def test_answer_question_stream_emits_faithfulness_event_when_enabled(monkeypatc
 
 def test_answer_question_stream_emits_faithfulness_event_without_fallback_when_faithful(monkeypatch):
     monkeypatch.setattr(pipeline, "ENABLE_STREAM_FAITHFULNESS", True)
-    monkeypatch.setattr(pipeline, "search", lambda **kwargs: _sample_results())
+    monkeypatch.setattr(retriever, "search", lambda **kwargs: _sample_results())
     monkeypatch.setattr(pipeline, "_faithfulness_check", lambda resposta, context: (True, None))
 
     payload_lines = [
@@ -115,7 +115,7 @@ def test_answer_question_stream_emits_faithfulness_event_without_fallback_when_f
 
 
 def test_answer_question_stream_returns_error_event_when_ollama_fails(monkeypatch):
-    monkeypatch.setattr(pipeline, "search", lambda **kwargs: _sample_results())
+    monkeypatch.setattr(retriever, "search", lambda **kwargs: _sample_results())
 
     async def _collect():
         events = []

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from bbsia.rag.orchestration import pipeline
-
+from bbsia.rag.retrieval import retriever
 
 def _sample_results() -> list[dict]:
     return [
@@ -22,7 +22,7 @@ def _sample_results() -> list[dict]:
 
 def test_answer_question_skips_sync_faithfulness_when_disabled(monkeypatch):
     monkeypatch.setattr(pipeline, "ENABLE_SYNC_FAITHFULNESS", False)
-    monkeypatch.setattr(pipeline, "search", lambda **_kwargs: _sample_results())
+    monkeypatch.setattr(retriever, "search", lambda **_kwargs: _sample_results())
     monkeypatch.setattr(pipeline, "query_ollama", lambda **_kwargs: "Resposta util com base no contexto. (Silva, 2026)")
     monkeypatch.setattr(
         pipeline,
@@ -37,7 +37,7 @@ def test_answer_question_skips_sync_faithfulness_when_disabled(monkeypatch):
 
 def test_answer_question_runs_sync_faithfulness_when_enabled(monkeypatch):
     monkeypatch.setattr(pipeline, "ENABLE_SYNC_FAITHFULNESS", True)
-    monkeypatch.setattr(pipeline, "search", lambda **_kwargs: _sample_results())
+    monkeypatch.setattr(retriever, "search", lambda **_kwargs: _sample_results())
     monkeypatch.setattr(pipeline, "query_ollama", lambda **_kwargs: "Resposta nao suportada.")
     monkeypatch.setattr(pipeline, "_faithfulness_check", lambda *_args, **_kwargs: (False, "sem suporte"))
 
@@ -49,7 +49,7 @@ def test_answer_question_runs_sync_faithfulness_when_enabled(monkeypatch):
 
 def test_answer_question_replaces_no_evidence_when_context_exists(monkeypatch):
     monkeypatch.setattr(pipeline, "ENABLE_SYNC_FAITHFULNESS", False)
-    monkeypatch.setattr(pipeline, "search", lambda **_kwargs: _sample_results())
+    monkeypatch.setattr(retriever, "search", lambda **_kwargs: _sample_results())
     monkeypatch.setattr(
         pipeline,
         "query_ollama",

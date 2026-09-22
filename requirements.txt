@@ -13,3 +13,4 @@ pyyaml>=6.0.0
 qdrant-client>=1.9.0
 pillow>=10.0.0
 pytesseract>=0.3.10
+respx>=0.23.1

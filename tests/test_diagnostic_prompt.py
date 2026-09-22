@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from bbsia.rag.generation import generator
 from bbsia.rag.orchestration import pipeline
-
+from bbsia.rag.retrieval import retriever
 
 def _solution_result() -> dict:
     return {
@@ -58,11 +58,11 @@ def test_build_prompt_adds_diagnostic_contract():
 
 def test_diagnostic_answer_falls_back_when_catalog_has_no_solution(monkeypatch):
     def fake_search(**kwargs):
-        if kwargs.get("target_collection") == pipeline.COLLECTION_SOLUTIONS:
+        if kwargs.get("target_collection") == retriever.COLLECTION_SOLUTIONS:
             return []
         return [_document_result()]
 
-    monkeypatch.setattr(pipeline, "search", fake_search)
+    monkeypatch.setattr(retriever, "search", fake_search)
     monkeypatch.setattr(
         pipeline,
         "query_ollama",
@@ -79,11 +79,11 @@ def test_diagnostic_answer_falls_back_when_catalog_has_no_solution(monkeypatch):
 
 def test_diagnostic_answer_uses_structured_prompt_when_solution_exists(monkeypatch):
     def fake_search(**kwargs):
-        if kwargs.get("target_collection") == pipeline.COLLECTION_SOLUTIONS:
+        if kwargs.get("target_collection") == retriever.COLLECTION_SOLUTIONS:
             return [_solution_result()]
         return [_document_result()]
 
-    monkeypatch.setattr(pipeline, "search", fake_search)
+    monkeypatch.setattr(retriever, "search", fake_search)
     captured = {}
 
     def fake_query_ollama(**kwargs):
